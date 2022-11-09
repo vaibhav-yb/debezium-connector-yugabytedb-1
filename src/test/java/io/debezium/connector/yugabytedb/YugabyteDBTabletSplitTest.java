@@ -271,7 +271,7 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
     TestHelper.executeBulkWithRange(insertFormat, recordsCount, 1500);
 
     // Wait for the parent tablet to be deleted/hidden before splitting again.
-    TestHelper.waitFor(Duration.ofSeconds(20));
+    TestHelper.waitFor(Duration.ofSeconds(30));
 
     // Flush the table and split all the tablets.
     ybClient.flushTable(table.getTableId());
@@ -302,7 +302,7 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
     SourceRecords records = consumeRecordsByTopic(1450);
 
     // Verify that the records are there in the topic.
-    assertEquals(1500, records.recordsForTopic("test_server.public.t1").size());
+    assertEquals(1450, records.recordsForTopic("test_server.public.t1").size());
 
     // Verify that the API to read cdc_state is returning the correct set of tablets.
     GetTabletListToPollForCDCResponse responseAfterSecondSplit = ybClient.getTabletListToPollForCdc(
