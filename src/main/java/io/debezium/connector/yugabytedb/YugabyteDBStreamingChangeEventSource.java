@@ -358,8 +358,8 @@ public class YugabyteDBStreamingChangeEventSource implements
                         }
                       }
 
-                        LOGGER.info("Processing {} records from getChanges call with opId {}",
-                                response.getResp().getCdcSdkProtoRecordsList().size());
+                        LOGGER.info("Processing {} records from getChanges call with opId {}.{}",
+                                response.getResp().getCdcSdkProtoRecordsList().size(), response.getTerm(), response.getIndex());
                         for (CdcService.CDCSDKProtoRecordPB record : response
                                 .getResp()
                                 .getCdcSdkProtoRecordsList()) {
