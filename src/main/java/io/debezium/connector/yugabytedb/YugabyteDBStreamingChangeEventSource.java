@@ -348,9 +348,9 @@ public class YugabyteDBStreamingChangeEventSource implements
                             if (LOGGER.isDebugEnabled()) {
                                 cdcException.printStackTrace();
                             }
-
-                            handleTabletSplit(cdcException, tabletPairList, offsetContext, streamId, schemaNeeded);
-
+                            long beforeSplitTime = System.currentTimeMillis();
+                            handleTabletSplit(cdcException, tabletPairList, offsetContext, streamId, schemaNeeded, tableIdToTable);
+                            LOGGER.info("Time take to handle split: {}", System.currentTimeMillis() - beforeSplitTime);
                             // Break out of the loop so that the iteration can start afresh on the modified list.
                             break;
                         } else {
@@ -742,7 +742,8 @@ public class YugabyteDBStreamingChangeEventSource implements
                                    List<Pair<String,String>> tabletPairList,
                                    YugabyteDBOffsetContext offsetContext,
                                    String streamId,
-                                   Map<String, Boolean> schemaNeeded) throws Exception {
+                                   Map<String, Boolean> schemaNeeded,
+                                   Map<String, YBTable> tableIdToTable) throws Exception {
         // Obtain the tablet ID of the splitted tablet from the message.
         String splitTabletId = getTabletIdFromSplitMessage(cdcErrorException.getMessage());
         LOGGER.info("Removing the tablet {} from the list to get the changes since it has been split", splitTabletId);
@@ -768,13 +769,14 @@ public class YugabyteDBStreamingChangeEventSource implements
             }
         }
 
+        long beforeNewApi = System.currentTimeMillis();
         // Add the new tablets to the tablet pair list.
         GetTabletListToPollForCDCResponse getTabletListResponse =
           this.syncClient.getTabletListToPollForCdc(
-              this.syncClient.openTableByUUID(tableId),
+              tableIdToTable.get(tableId),
               streamId,
               tableId);
-
+        LOGGER.info("Time taken to call newApi: {}", System.currentTimeMillis() - beforeNewApi);
         // TODO: Currently there is no API to check and receive only the child tablets of a given
         // tablet, but if in future we have something available, change the below loop logic to use
         // that one instead.
