@@ -327,7 +327,7 @@ public class YugabyteDBStreamingChangeEventSource implements
 
                       YBTable table = tableIdToTable.get(entry.getKey());
 
-                      LOGGER.debug("Going to fetch for tablet " + tabletId + " from OpId " + cp + " " +
+                      LOGGER.info("Going to fetch for tablet " + tabletId + " from OpId " + cp + " " +
                         "table " + table.getName() + " Running:" + context.isRunning());
 
                       // Check again if the thread has been interrupted.
@@ -358,7 +358,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                         }
                       }
 
-                        LOGGER.debug("Processing {} records from getChanges call",
+                        LOGGER.info("Processing {} records from getChanges call with opId {}",
                                 response.getResp().getCdcSdkProtoRecordsList().size());
                         for (CdcService.CDCSDKProtoRecordPB record : response
                                 .getResp()
