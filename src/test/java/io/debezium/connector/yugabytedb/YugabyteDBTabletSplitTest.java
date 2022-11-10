@@ -310,6 +310,26 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
     assertEquals(8, responseAfterSecondSplit.getTabletCheckpointPairListSize());
   }
 
+  @Test
+  public void printApiTimings() throws Exception {
+    TestHelper.dropAllSchemas();
+    TestHelper.execute("CREATE TABLE t1 (id INT PRIMARY KEY, name TEXT) SPLIT INTO 40 TABLETS;");
+
+    String dbStreamId = TestHelper.getNewDbStreamId("yugabyte", "t1");
+    // Configuration.Builder configBuilder = TestHelper.getConfigBuilder("public.t1", dbStreamId);
+
+    YBClient ybClient = TestHelper.getYbClient(masterAddresses);
+    YBTable table = TestHelper.getYbTable(ybClient, "t1");
+
+    long beforeOldApi = System.currentTimeMillis();
+    Set<String> oldApiTablets = ybClient.getTabletUUIDs(table);
+    LOGGER.info("Time taken to call old API: {}", System.currentTimeMillis() - beforeOldApi);
+
+    long beforeNewApi = System.currentTimeMillis();
+    GetTabletListToPollForCDCResponse resp = ybClient.getTabletListToPollForCdc(table, dbStreamId, table.getTableId());
+    LOGGER.info("Time taken to call new API: {}", System.currentTimeMillis() - beforeNewApi);
+  }
+
   private void waitForTablets(YBClient ybClient, YBTable table, int tabletCount) {
     Awaitility.await()
       .pollDelay(Duration.ofSeconds(2))
