@@ -348,9 +348,25 @@ public class YugabyteDBStreamingChangeEventSource implements
                             if (LOGGER.isDebugEnabled()) {
                                 cdcException.printStackTrace();
                             }
+
+                            LOGGER.info("VKVK tablets in polling list before handling: ");
+                            for (Pair<String, String> e : tabletPairList) {
+                                LOGGER.info("Tablet: {}", e.getValue());
+                            }
                             long beforeSplitTime = System.currentTimeMillis();
                             handleTabletSplit(cdcException, tabletPairList, offsetContext, streamId, schemaNeeded, tableIdToTable);
                             LOGGER.info("Time take to handle split: {}", System.currentTimeMillis() - beforeSplitTime);
+                            
+                            LOGGER.info("VKVK tablets in polling list after handling: ");
+                            for (Pair<String, String> e : tabletPairList) {
+                                LOGGER.info("Tablet: {}", e.getValue());
+                            }
+                            
+                            LOGGER.info("VKVK tablets from old API: ");
+                            Set<String> oldApiSet = this.syncClient.getTabletUUIDs(this.syncClient.openTableByUUID(entry.getKey()));
+                            for (String t : oldApiSet) {
+                                LOGGER.info("Tablet: {}", t);
+                            }
                             // Break out of the loop so that the iteration can start afresh on the modified list.
                             break;
                         } else {
@@ -777,11 +793,34 @@ public class YugabyteDBStreamingChangeEventSource implements
               streamId,
               tableId);
         LOGGER.info("Time taken to call newApi: {}", System.currentTimeMillis() - beforeNewApi);
+
+        GetTabletListToPollForCDCResponse resp = this.syncClient.getTabletListToPollForCdc(
+              tableIdToTable.get(tableId),
+              streamId,
+              tableId,
+              splitTabletId
+        );
+
+        for (TabletCheckpointPair tabletCheckpointPair : resp.getTabletCheckpointPairList()) {
+            // TODO: make this a debug log
+            LOGGER.info("Child: {}", tabletCheckpointPair.getTabletId().toStringUtf8());
+            String tabletId = tabletCheckpointPair.getTabletId().toStringUtf8();
+            ImmutablePair<String, String > p = new ImmutablePair<String,String>(tableId, tabletId);
+            tabletPairList.add(p);
+
+            offsetContext.initSourceInfo(tabletId, this.connectorConfig, OpId.from(tabletCheckpointPair.getCdcSdkCheckpoint()));
+
+            LOGGER.info("Initialized offset context for tablet {} with OpId {}", tabletId, OpId.from(tabletCheckpointPair.getCdcSdkCheckpoint()));
+
+            // Add the flag to indicate that we do not need the schema from this tablet again.
+            schemaNeeded.put(tabletId, Boolean.FALSE);
+        }
+
         // TODO: Currently there is no API to check and receive only the child tablets of a given
         // tablet, but if in future we have something available, change the below loop logic to use
         // that one instead.
-        for (TabletCheckpointPair pair : getTabletListResponse.getTabletCheckpointPairList()) {
-            addTabletIfNotPresent(tabletPairList, pair, tableId, offsetContext, schemaNeeded);
-        }
+        // for (TabletCheckpointPair pair : getTabletListResponse.getTabletCheckpointPairList()) {
+        //     addTabletIfNotPresent(tabletPairList, pair, tableId, offsetContext, schemaNeeded);
+        // }
     }
 }

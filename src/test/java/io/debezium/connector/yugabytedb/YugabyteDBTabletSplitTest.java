@@ -313,7 +313,7 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
   @Test
   public void printApiTimings() throws Exception {
     TestHelper.dropAllSchemas();
-    TestHelper.execute("CREATE TABLE t1 (id INT PRIMARY KEY, name TEXT) SPLIT INTO 40 TABLETS;");
+    TestHelper.execute("CREATE TABLE t1 (id INT PRIMARY KEY, name TEXT) SPLIT INTO 100 TABLETS;");
 
     String dbStreamId = TestHelper.getNewDbStreamId("yugabyte", "t1");
     // Configuration.Builder configBuilder = TestHelper.getConfigBuilder("public.t1", dbStreamId);
