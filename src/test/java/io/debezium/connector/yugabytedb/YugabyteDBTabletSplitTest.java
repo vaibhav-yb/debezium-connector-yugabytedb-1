@@ -402,7 +402,7 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
 
     awaitUntilConnectorIsReady();
 
-    int recordsCount = 10000;
+    int recordsCount = 20000;
 
     String insertFormat = "INSERT INTO t1(id, name) VALUES (%d, 'value for split table');";
 
@@ -410,11 +410,11 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
     YBTable table = TestHelper.getYbTable(ybClient, "t1");
 
     int beginKey = 0;
-    int endKey = beginKey + 50;
+    int endKey = beginKey + 100;
     for (int i = 0; i < 200; ++i) {
       TestHelper.executeBulkWithRange(insertFormat, beginKey, endKey);
       beginKey = endKey;
-      endKey = beginKey + 50;
+      endKey = beginKey + 100;
       LOGGER.info("At the end of iteration {}, tablet count: {}", i, ybClient.getTabletUUIDs(table).size());
       // verifyRecordCount(200);
     }
@@ -598,9 +598,10 @@ public class YugabyteDBTabletSplitTest extends YugabyteDBTestBase {
             LOGGER.info("Consumed " + totalConsumedRecords + " records with record key set size: " + recordKeySet.size());
         } else {
           ++failureCounter;
+          TestHelper.waitFor(Duration.ofSeconds(2));
         }
 
-        if (failureCounter == 1000) {
+        if (failureCounter == 100) {
           LOGGER.info("Breaking becauase failure counter hit limit");
           break;
         }
