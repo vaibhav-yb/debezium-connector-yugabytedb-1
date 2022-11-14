@@ -327,7 +327,7 @@ public class YugabyteDBStreamingChangeEventSource implements
 
                       YBTable table = tableIdToTable.get(entry.getKey());
 
-                      LOGGER.info("Going to fetch for tablet " + tabletId + " from OpId " + cp + " " +
+                      LOGGER.debug("Going to fetch for tablet " + tabletId + " from OpId " + cp + " " +
                         "table " + table.getName() + " Running:" + context.isRunning());
 
                       // Check again if the thread has been interrupted.
@@ -374,14 +374,13 @@ public class YugabyteDBStreamingChangeEventSource implements
                         }
                       }
 
-                        LOGGER.info("Processing {} records from getChanges call with opId {}.{}",
-                                response.getResp().getCdcSdkProtoRecordsList().size(), response.getTerm(), response.getIndex());
                         for (CdcService.CDCSDKProtoRecordPB record : response
                                 .getResp()
                                 .getCdcSdkProtoRecordsList()) {
                             CdcService.RowMessage m = record.getRowMessage();
                             YbProtoReplicationMessage message = new YbProtoReplicationMessage(
                                     m, this.yugabyteDBTypeRegistry);
+                            LOGGER.debug("OpId of the record for tablet {}: {}.{}", entry.getValue(), record.getCdcSdkOpId().getTerm(), record.getCdcSdkOpId().getIndex());
 
                             String pgSchemaNameInRecord = m.getPgschemaName();
 
@@ -514,6 +513,9 @@ public class YugabyteDBStreamingChangeEventSource implements
                                 se.printStackTrace();
                             }
                         }
+
+                        LOGGER.info("Processing {} records from getChanges call with response opId {}.{}",
+                                response.getResp().getCdcSdkProtoRecordsList().size(), response.getTerm(), response.getIndex());
 
                         probeConnectionIfNeeded();
 
