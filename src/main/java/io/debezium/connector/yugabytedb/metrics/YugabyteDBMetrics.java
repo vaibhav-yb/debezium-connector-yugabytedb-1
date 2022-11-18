@@ -113,23 +113,24 @@ public class YugabyteDBMetrics {
           mBeanServer.registerMBean(this, name);
           break;
         } catch (InstanceAlreadyExistsException e) {
-          if (attempt < REGISTRATION_RETRIES) {
-            LOGGER.warn(
-              "Unable to register metrics as an old set with the same name exists, retrying in {} (attempt {} out of {})",
-              REGISTRATION_RETRY_DELAY, attempt, REGISTRATION_RETRIES);
-              final Metronome metronome = Metronome.sleeper(REGISTRATION_RETRY_DELAY, Clock.system());
-              metronome.pause();
-          }
-          else {
-            LOGGER.error("Failed to register metrics MBean, metrics will not be available");
-          }
+          LOGGER.info("Metric with the same name exists, going ahead with the existing one");
+          // if (attempt < REGISTRATION_RETRIES) {
+            // LOGGER.warn(
+            //   "Unable to register metrics as an old set with the same name exists, retrying in {} (attempt {} out of {})",
+            //   REGISTRATION_RETRY_DELAY, attempt, REGISTRATION_RETRIES);
+            //   final Metronome metronome = Metronome.sleeper(REGISTRATION_RETRY_DELAY, Clock.system());
+            //   metronome.pause();
+          // }
+          // else {
+          //   LOGGER.error("Failed to register metrics MBean, metrics will not be available");
+          // }
         }
       }
       // If the old metrics MBean is present then the connector will try to unregister it
       // upon shutdown.
       registered = true;
     }
-    catch (JMException | InterruptedException e) {
+    catch (JMException e) {
       throw new RuntimeException("Unable to register the MBean '" + name + "'", e);
     }
   }
