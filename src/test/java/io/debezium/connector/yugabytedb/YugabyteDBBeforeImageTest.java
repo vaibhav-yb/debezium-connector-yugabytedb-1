@@ -311,7 +311,7 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBTestBase {
     int batchSize = 1000;
     int iterations = recordsCount / batchSize;
     int columnCount = 99;
-    long millisecondsToWait = 600 * 1000; // Wait this much for the records to be consumed
+    long millisecondsToWait = 1200 * 1000; // Wait this much for the records to be consumed
 
     TestHelper.execute("DROP TABLE IF EXISTS t1;");
 
