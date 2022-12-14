@@ -307,7 +307,7 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBTestBase {
   @Test
   public void shouldHandleDeletesGracefullyWithoutErrors() throws Exception {
     // TestHelper.initDB("yugabyte_create_tables.ddl");
-    int recordsCount = 20000;
+    int recordsCount = 10000;
     int batchSize = 1000;
     int iterations = recordsCount / batchSize;
     int columnCount = 99;
@@ -342,6 +342,8 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBTestBase {
     Compactor compactor = new Compactor(tableId);
 
     start(YugabyteDBConnector.class, configBuilder.build());
+
+    awaitUntilConnectorIsReady();
 
     Thread t = new Thread(compactor);
     t.start();
@@ -403,8 +405,10 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBTestBase {
                 + "123456789012345678901234567890123456789012345678901234567890"
                 + "1234567890123456789012345678901234567890123456789012345");
             }
-            assertValueField(record, "before/v100/value", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345");
-            
+            // assertValueField(record, "before/v100/value", "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345");
+            assertEquals("12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345", value.getStruct("before").getStruct("v100").getString("value"), "Failed because record is " + record.toString());
+            assertEquals("updated value of v100", value.getStruct("after").getStruct("v100").getString("value"), "Failed because record is " + record.toString());
+
             assertValueField(record, "after/v100/value", "updated value of v100");
         } else if (op.equals("d")) {
             LOGGER.info("ID: {}, Op: d", value.getStruct("before").getStruct("id").getInt32("value"));
