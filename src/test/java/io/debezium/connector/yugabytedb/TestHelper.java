@@ -296,6 +296,11 @@ public final class TestHelper {
         }
     }
 
+    public static void initDB(String initDdlFile) throws Exception {
+        dropAllSchemas();
+        executeDDL(initDdlFile);
+    }
+
     public static void insertData() throws SQLException {
         String[] insertStmts = {
                 "INSERT INTO t1 VALUES (1, 'Vaibhav', 'Kushwaha', 30);",
@@ -385,6 +390,7 @@ public final class TestHelper {
         String dockerImageName = System.getenv("YB_DOCKER_IMAGE");
         
         if (dockerImageName == null || dockerImageName.isEmpty()) {
+            LOGGER.info("Environment variable YB_DOCKER_IMAGE is empty, defaulting to image from Dockerhub.");
             dockerImageName = "yugabytedb/yugabyte:latest";
         }
 
@@ -454,7 +460,8 @@ public final class TestHelper {
         return null;
     }
 
-    public static String getNewDbStreamId(String namespaceName, String tableName) throws Exception {
+    public static String getNewDbStreamId(String namespaceName, String tableName,
+                                          boolean withBeforeImage) throws Exception {
         YBClient syncClient = getYbClient(MASTER_ADDRESS);
 
         YBTable placeholderTable = getYbTable(syncClient, tableName);
@@ -466,12 +473,17 @@ public final class TestHelper {
         String dbStreamId;
         try {
             dbStreamId = syncClient.createCDCStream(placeholderTable, namespaceName,
-                                                           "PROTO", "IMPLICIT").getStreamId();
+                                                    "PROTO", "IMPLICIT",
+                                                    withBeforeImage ? "ALL" : null).getStreamId();
         } finally {
             syncClient.close();
         }
 
         return dbStreamId;
+    }
+
+    public static String getNewDbStreamId(String namespaceName, String tableName) throws Exception {
+        return getNewDbStreamId(namespaceName, tableName, false);
     }
 
     public static JdbcConfiguration.Builder defaultJdbcConfigBuilder() {

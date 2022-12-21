@@ -30,3 +30,4 @@ generated-sources
 .settings
 .factorypath
 .idea/
+dependency-reduced-pom.xml
