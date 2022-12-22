@@ -218,7 +218,7 @@ public class YugabyteDbConsistentStreaming extends YugabyteDBStreamingChangeEven
                 // If there are retries left, perform them after the specified delay.
                 LOGGER.warn("Error while trying to get the changes from the server; will attempt retry {} of {} after {} milli-seconds. Exception message: {}",
                         retryCount, connectorConfig.maxConnectorRetries(), connectorConfig.connectorRetryDelayMs(), e.getMessage(), e);
-                LOGGER.debug("Stacktrace", e);
+                LOGGER.warn("Stacktrace", e);
 
                 try {
                     retryMetronome.pause();
@@ -280,7 +280,7 @@ public class YugabyteDbConsistentStreaming extends YugabyteDBStreamingChangeEven
                                         message.getTransactionId(), lsn, tabletId, recordsInTransactionalBlock.get(tabletId));
                             }
                         } else {
-                            throw new DebeziumException("COMMIT record encountered without a preceding BEGIN record");
+//                            throw new DebeziumException("COMMIT record encountered without a preceding BEGIN record");
                         }
 
                         recordsInTransactionalBlock.remove(tabletId);
@@ -332,12 +332,13 @@ public class YugabyteDbConsistentStreaming extends YugabyteDBStreamingChangeEven
                     Objects.requireNonNull(tableId);
                 }
                 // Getting the table with the help of the schema.
-                Table t = schema.tableFor(tableId);
+                Table t = schema.tableForTablet(tableId, tabletId);
                 LOGGER.debug("The schema is already registered {}", t);
                 if (t == null) {
                     // If we fail to achieve the table, that means we have not specified correct schema information,
                     // now try to refresh the schema.
-                    schema.refreshWithSchema(tableId, message.getSchema(), pgSchemaNameInRecord);
+
+                    schema.refreshSchemaWithTabletId(tableId, message.getSchema(), pgSchemaNameInRecord, tabletId);
                 }
             }
             // DML event
@@ -356,7 +357,7 @@ public class YugabyteDbConsistentStreaming extends YugabyteDBStreamingChangeEven
 
                 boolean dispatched = message.getOperation() != ReplicationMessage.Operation.NOOP
                         && dispatcher.dispatchDataChangeEvent(part, tableId, new YugabyteDBChangeRecordEmitter(part, offsetContext, clock, connectorConfig,
-                        schema, connection, tableId, message, pgSchemaNameInRecord));
+                        schema, connection, tableId, message, pgSchemaNameInRecord, tabletId, taskContext.isBeforeImageEnabled()));
 
                 if (recordsInTransactionalBlock.containsKey(tabletId)) {
                     recordsInTransactionalBlock.merge(tabletId, 1, Integer::sum);

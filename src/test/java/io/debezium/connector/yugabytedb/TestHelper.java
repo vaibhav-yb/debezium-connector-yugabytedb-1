@@ -473,8 +473,7 @@ public final class TestHelper {
         String dbStreamId;
         try {
             dbStreamId = syncClient.createCDCStream(placeholderTable, namespaceName,
-                                                    "PROTO", "IMPLICIT",
-                                                    withBeforeImage ? "ALL" : null).getStreamId();
+                                                    "PROTO", "IMPLICIT").getStreamId();
         } finally {
             syncClient.close();
         }
