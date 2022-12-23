@@ -54,11 +54,11 @@ public class YugabyteDBStreamConsistencyTest extends YugabyteDBTestBase {
     private static final String SETUP_TABLES_STMT = CREATE_TABLES_STMT + INSERT_STMT;
     @BeforeClass
     public static void beforeClass() throws SQLException {
-        ybContainer = TestHelper.getYbContainer();
-        ybContainer.start();
+//        ybContainer = TestHelper.getYbContainer();
+//        ybContainer.start();
 
-        TestHelper.setContainerHostPort(ybContainer.getHost(), ybContainer.getMappedPort(5433));
-        TestHelper.setMasterAddress(ybContainer.getHost() + ":" + ybContainer.getMappedPort(7100));
+//        TestHelper.setContainerHostPort(ybContainer.getHost(), ybContainer.getMappedPort(5433));
+//        TestHelper.setMasterAddress(ybContainer.getHost() + ":" + ybContainer.getMappedPort(7100));
         TestHelper.dropAllSchemas();
     }
 
@@ -77,7 +77,7 @@ public class YugabyteDBStreamConsistencyTest extends YugabyteDBTestBase {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        ybContainer.stop();
+//        ybContainer.stop();
     }
 
     @Test
@@ -88,7 +88,7 @@ public class YugabyteDBStreamConsistencyTest extends YugabyteDBTestBase {
 
         String dbStreamId = TestHelper.getNewDbStreamId("yugabyte", "department");
         Configuration.Builder configBuilder = TestHelper.getConfigBuilder("public.department,public.employee", dbStreamId);
-//        configBuilder.with(YugabyteDBConnectorConfig.CONSISTENCY_MODE, "global");
+        configBuilder.with(YugabyteDBConnectorConfig.CONSISTENCY_MODE, "global");
         configBuilder.with("transforms", "Reroute");
         configBuilder.with("transforms.Reroute.type", "io.debezium.transforms.ByLogicalTableRouter");
         configBuilder.with("transforms.Reroute.topic.regex", "(.*)");
@@ -103,7 +103,7 @@ public class YugabyteDBStreamConsistencyTest extends YugabyteDBTestBase {
 
         final int iterations = 5;
         final int batchSize = 100;
-        int departmentId = 402;
+        int departmentId = 1;
         long totalCount = 0;
         int beginKey = 1;
         int endKey = beginKey + batchSize - 1;
@@ -115,7 +115,7 @@ public class YugabyteDBStreamConsistencyTest extends YugabyteDBTestBase {
             indicesOfParentAdditions.add((int) totalCount); // Hack to add the indices of the required records
 
             // Insert records into the second table
-            TestHelper.execute(String.format("INSERT INTO employee VALUES (generate_series(%d,%d), 'gs emp name', %s);", beginKey, endKey, departmentId));
+            TestHelper.execute(String.format("INSERT INTO employee VALUES (generate_series(%d,%d), 'gs emp name', %d);", beginKey, endKey, departmentId));
 
             // Change department ID for next iteration
             ++departmentId;
