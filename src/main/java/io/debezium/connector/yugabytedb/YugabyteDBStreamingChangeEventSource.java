@@ -805,6 +805,16 @@ public class YugabyteDBStreamingChangeEventSource implements
         for (TabletCheckpointPair pair : getTabletListResponse.getTabletCheckpointPairList()) {
             addTabletIfNotPresent(tabletPairList, pair, tableId, offsetContext, schemaNeeded);
         }
+
+        if (getTabletListResponse.getTabletCheckpointPairListSize() == 2) {
+            // Making sure that we only modify the configs when we have everything we need.
+            // The modified tabletPairList will have the parent tablet removed and children tablet added.
+            String serializedTabletToTabletIds = ObjectUtil.serializeObjectToString(tabletPairList);
+
+//            LOGGER.info("Modifying the task configuration on split");
+//            // Put this string in the task config.
+//            this.connectorConfig.getConfig().asMap().put(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
+        }
     }
 
     /**
