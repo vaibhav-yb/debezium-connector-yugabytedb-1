@@ -811,14 +811,16 @@ public class YugabyteDBStreamingChangeEventSource implements
             // The modified tabletPairList will have the parent tablet removed and children tablet added.
             String serializedTabletToTabletIds = ObjectUtil.serializeObjectToString(tabletPairList);
 
-            int sizeBeforeMod = tabletPairList.size();
-            LOGGER.info("Modifying the task configuration on split");
+
+//            int sizeBeforeMod = tabletPairList.size();
+            LOGGER.info("Toggle before modifying: {}", this.connectorConfig.getToggleForRestart());
             // Put this string in the task config.
-            this.connectorConfig.getConfig().edit().with(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
+//            this.connectorConfig.getConfig().edit().with(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
 //            this.connectorConfig.getConfig().asMap().put(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
-            List<Pair<String, String>> afterMod = (List<Pair<String, String>>) ObjectUtil.deserializeObjectFromString(this.connectorConfig.getConfig().getString(YugabyteDBConnectorConfig.TABLET_LIST.toString()));
-            int afterModSize = afterMod.size();
-            LOGGER.info("Before mod size {} and after mod size {}", sizeBeforeMod, afterModSize);
+//            List<Pair<String, String>> afterMod = (List<Pair<String, String>>) ObjectUtil.deserializeObjectFromString(this.connectorConfig.getConfig().getString(YugabyteDBConnectorConfig.TABLET_LIST.toString()));
+//            int afterModSize = afterMod.size();
+            this.connectorConfig.toggleForRestart();
+            LOGGER.info("Toggle after modifying: {}", this.connectorConfig.getToggleForRestart());
         }
     }
 

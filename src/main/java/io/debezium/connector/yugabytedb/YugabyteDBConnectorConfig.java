@@ -53,6 +53,8 @@ public class YugabyteDBConnectorConfig extends RelationalDatabaseConnectorConfig
 
     private static final Logger LOGGER = LoggerFactory.getLogger(YugabyteDBConnectorConfig.class);
 
+    private boolean restartToggle = false;
+
     /**
      * The set of predefined HStoreHandlingMode options or aliases
      */
@@ -553,6 +555,11 @@ public class YugabyteDBConnectorConfig extends RelationalDatabaseConnectorConfig
             .withType(ConfigDef.Type.STRING)
             .withWidth(ConfigDef.Width.MEDIUM)
             .withDescription("Internal task config: List of TabletIds to be fetched by this task");
+
+    public static final Field RESTART_TOGGLE = Field.create("restart.toggle")
+            .withDisplayName("Internal use only")
+            .withType(Type.BOOLEAN)
+            .withDefault(false);
 
     public static final Field MAX_NUM_TABLETS = Field.create("table.max.num.tablets")
             .withDisplayName("Maximum number of tablets that can be polled for in a table")
@@ -1066,6 +1073,15 @@ public class YugabyteDBConnectorConfig extends RelationalDatabaseConnectorConfig
         this.schemaRefreshMode = SchemaRefreshMode.parse(config.getString(SCHEMA_REFRESH_MODE));
 
         this.databaseFilter = new DatabasePredicate();
+    }
+
+    protected void toggleForRestart() {
+       // This will change the configuration and the connector will be restarted.
+       this.restartToggle = !restartToggle;
+    }
+
+    protected boolean getToggleForRestart() {
+        return this.restartToggle;
     }
 
     protected String hostname() {

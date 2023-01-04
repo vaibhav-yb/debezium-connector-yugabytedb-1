@@ -9,6 +9,7 @@ package io.debezium.connector.yugabytedb;
 import java.sql.SQLException;
 import java.util.Collections;
 
+import org.apache.kafka.connect.connector.ConnectorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +37,18 @@ public class YugabyteDBTaskContext extends CdcSourceTaskContext {
 
     private final boolean sendBeforeImage;
 
+    private final ConnectorContext connectorContext;
+
     protected YugabyteDBTaskContext(YugabyteDBConnectorConfig config, YugabyteDBSchema schema,
                                     TopicSelector<TableId> topicSelector, String taskId,
-                                    boolean sendBeforeImage) {
+                                    boolean sendBeforeImage, ConnectorContext connectorContext) {
         super(config.getContextName(), config.getLogicalName(), taskId, Collections::emptySet);
         this.config = config;
         this.topicSelector = topicSelector;
         assert schema != null;
         this.schema = schema;
         this.sendBeforeImage = sendBeforeImage;
+        this.connectorContext = connectorContext;
     }
 
     protected TopicSelector<TableId> topicSelector() {
@@ -89,5 +93,9 @@ public class YugabyteDBTaskContext extends CdcSourceTaskContext {
 
     YugabyteDBConnectorConfig getConfig() {
         return config;
+    }
+
+    protected void reconfigure() {
+        this.connectorContext.requestTaskReconfiguration();
     }
 }
