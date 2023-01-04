@@ -814,7 +814,8 @@ public class YugabyteDBStreamingChangeEventSource implements
             int sizeBeforeMod = tabletPairList.size();
             LOGGER.info("Modifying the task configuration on split");
             // Put this string in the task config.
-            this.connectorConfig.getConfig().asMap().put(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
+            this.connectorConfig.getConfig().edit().with(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
+//            this.connectorConfig.getConfig().asMap().put(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
             List<Pair<String, String>> afterMod = (List<Pair<String, String>>) ObjectUtil.deserializeObjectFromString(this.connectorConfig.getConfig().getString(YugabyteDBConnectorConfig.TABLET_LIST.toString()));
             int afterModSize = afterMod.size();
             LOGGER.info("Before mod size {} and after mod size {}", sizeBeforeMod, afterModSize);
