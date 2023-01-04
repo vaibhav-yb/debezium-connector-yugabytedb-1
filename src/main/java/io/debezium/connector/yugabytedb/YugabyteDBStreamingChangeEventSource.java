@@ -811,9 +811,13 @@ public class YugabyteDBStreamingChangeEventSource implements
             // The modified tabletPairList will have the parent tablet removed and children tablet added.
             String serializedTabletToTabletIds = ObjectUtil.serializeObjectToString(tabletPairList);
 
-//            LOGGER.info("Modifying the task configuration on split");
-//            // Put this string in the task config.
-//            this.connectorConfig.getConfig().asMap().put(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
+            int sizeBeforeMod = tabletPairList.size();
+            LOGGER.info("Modifying the task configuration on split");
+            // Put this string in the task config.
+            this.connectorConfig.getConfig().asMap().put(YugabyteDBConnectorConfig.TABLET_LIST.toString(), serializedTabletToTabletIds);
+            List<Pair<String, String>> afterMod = (List<Pair<String, String>>) ObjectUtil.deserializeObjectFromString(this.connectorConfig.getConfig().getString(YugabyteDBConnectorConfig.TABLET_LIST.toString()));
+            int afterModSize = afterMod.size();
+            LOGGER.info("Before mod size {} and after mod size {}", sizeBeforeMod, afterModSize);
         }
     }
 
