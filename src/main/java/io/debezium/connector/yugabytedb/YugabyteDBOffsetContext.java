@@ -202,6 +202,10 @@ public class YugabyteDBOffsetContext implements OffsetContext {
 
     public SourceInfo getSourceInfo(String tableId, String tabletId, boolean ignoreTableUUID) {
         if (ignoreTableUUID) {
+            SourceInfo info = tabletSourceInfo.get(tabletId);
+            if (info == null) {
+                tabletSourceInfo.put(tabletId, new SourceInfo(connectorConfig));
+            }
             return tabletSourceInfo.get(tabletId);
         }
 
