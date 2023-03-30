@@ -44,6 +44,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
     private OpId streamingStoppingLsn = null;
     private TransactionContext transactionContext;
     private IncrementalSnapshotContext<TableId> incrementalSnapshotContext;
+    private YugabyteDBConnectorConfig connectorConfig;
 
     private YugabyteDBOffsetContext(YugabyteDBConnectorConfig connectorConfig,
                                     OpId lsn, OpId lastCompletelyProcessedLsn,
@@ -71,6 +72,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         }
         this.transactionContext = transactionContext;
         this.incrementalSnapshotContext = incrementalSnapshotContext;
+        this.connectorConfig = connectorConfig;
     }
 
     public YugabyteDBOffsetContext(Offsets<YBPartition, YugabyteDBOffsetContext> previousOffsets,
@@ -89,12 +91,13 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                 String tabletId = context.getKey().getTabletId();
                 initSourceInfo(tableUUID, tabletId, config);
                 this.updateWalPosition(tableUUID, tabletId,
-                        this.lastCommitLsn, lastCompletelyProcessedLsn, null, null, null, null);
+                        this.lastCommitLsn, lastCompletelyProcessedLsn, null, null, null, null, false);
             }
         }
         LOGGER.debug("Populating the tabletsourceinfo with " + this.getTabletSourceInfo());
         this.transactionContext = new TransactionContext();
         this.incrementalSnapshotContext = new SignalBasedIncrementalSnapshotContext<>();
+        this.connectorConfig = config;
     }
 
     public static YugabyteDBOffsetContext initialContextForSnapshot(YugabyteDBConnectorConfig connectorConfig,
@@ -137,7 +140,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         for (YBPartition p : partitions) {
             if (context.getTabletSourceInfo().get(p.getId()) == null) {
                 context.initSourceInfo(p.getTableId(), p.getTabletId(), connectorConfig);
-                context.updateWalPosition(p.getTableId(), p.getTabletId(), lastCommitLsn, lastCompletelyProcessedLsn, clock.currentTimeAsInstant(), String.valueOf(txId), null, null);
+                context.updateWalPosition(p.getTableId(), p.getTabletId(), lastCommitLsn, lastCompletelyProcessedLsn, clock.currentTimeAsInstant(), String.valueOf(txId), null, null, false);
             }
         }
         return context;
@@ -197,6 +200,14 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         return tabletSourceInfo.get(tableId + "." + tabletId);
     }
 
+    public SourceInfo getSourceInfo(String tableId, String tabletId, boolean ignoreTableUUID) {
+        if (ignoreTableUUID) {
+            return tabletSourceInfo.get(tabletId);
+        }
+
+        return getSourceInfo(tableId, tabletId);
+    }
+
     @Override
     public boolean isSnapshotRunning() {
         return sourceInfo.isSnapshot();
@@ -224,14 +235,23 @@ public class YugabyteDBOffsetContext implements OffsetContext {
 
     public void updateWalPosition(String tableUUID, String tabletId, OpId lsn, OpId lastCompletelyProcessedLsn,
                                   Instant commitTime,
-                                  String txId, TableId tableId, Long xmin) {
-
+                                  String txId, TableId tableId, Long xmin,
+                                  boolean ignoreTableUUID) {
+        // ignoreTableUUID is for the situations where we only want to store the OpIds against
+        // the table ID and not the tablet ID. One such case is the streaming of colocated tables.
         this.lastCompletelyProcessedLsn = lastCompletelyProcessedLsn;
 
-        sourceInfo.update(tableUUID, tabletId, lsn, commitTime, txId, tableId, xmin);
-        SourceInfo info = this.tabletSourceInfo.get(tableUUID + "." + tabletId);
-        info.update(tableUUID, tabletId, lsn, commitTime, txId, tableId, xmin);
-        this.tabletSourceInfo.put(tableUUID + "." + tabletId, info);
+        String lookupPrefix = ignoreTableUUID ? "" : tableUUID + ".";
+
+        sourceInfo.update(lookupPrefix, tabletId, lsn, commitTime, txId, tableId, xmin);
+        SourceInfo info = this.tabletSourceInfo.get(lookupPrefix + tabletId);
+
+        if (info == null) {
+            info = new SourceInfo(connectorConfig);
+        }
+
+        info.update(lookupPrefix, tabletId, lsn, commitTime, txId, tableId, xmin);
+        this.tabletSourceInfo.put(lookupPrefix + tabletId, info);
     }
 
     public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig) {
@@ -265,11 +285,15 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                 : sourceInfo.lsn();
     }
 
-    OpId lsn(String tableUUID, String tabletId) {
+    OpId lsn(String tableUUID, String tabletId, boolean ignoreTableUUID) {
         // get the sourceInfo of the tablet
-        SourceInfo sourceInfo = getSourceInfo(tableUUID, tabletId);
+        SourceInfo sourceInfo = getSourceInfo(tableUUID, tabletId, ignoreTableUUID);
         return sourceInfo.lsn() == null ? streamingStartLsn()
                 : sourceInfo.lsn();
+    }
+
+    OpId lsn(String tableUUID, String tabletId) {
+        return lsn(tableUUID, tabletId, false /* ignoreTableUUID */);
     }
 
     /**

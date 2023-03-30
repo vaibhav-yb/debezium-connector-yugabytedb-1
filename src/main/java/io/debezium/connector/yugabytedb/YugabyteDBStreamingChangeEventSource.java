@@ -424,7 +424,8 @@ public class YugabyteDBStreamingChangeEventSource implements
                                         if (message.getOperation() == Operation.COMMIT) {
                                             LOGGER.debug("LSN in case of COMMIT is " + lsn);
                                             offsetContext.updateWalPosition(entry.getKey(), tabletId, lsn, lastCompletelyProcessedLsn, message.getCommitTime(),
-                                                    String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */);
+                                                    String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */,
+                                                    table.isColocated() /* ignoreTableUUID */);
                                             commitMessage(part, offsetContext, lsn);
 
                                             if (recordsInTransactionalBlock.containsKey(entry.getKey() + "." + tabletId)) {
@@ -456,7 +457,8 @@ public class YugabyteDBStreamingChangeEventSource implements
                                     else if (message.getOperation() == Operation.COMMIT) {
                                         LOGGER.debug("LSN in case of COMMIT is " + lsn);
                                         offsetContext.updateWalPosition(entry.getKey(), tabletId, lsn, lastCompletelyProcessedLsn, message.getCommitTime(),
-                                                String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */);
+                                                String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */,
+                                                table.isColocated() /* ignoreTableUUID */);
                                         commitMessage(part, offsetContext, lsn);
                                         dispatcher.dispatchTransactionCommittedEvent(part, offsetContext);
 
@@ -482,7 +484,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                             + " the table is " + message.getTable());
 
                                     // If a DDL message is received for a tablet, we do not need its schema again
-                                    schemaNeeded.put(tabletId, Boolean.FALSE);
+                                    schemaNeeded.put(entry.getKey() + "." + tabletId, Boolean.FALSE);
 
                                     TableId tableId = null;
                                     if (message.getOperation() != Operation.NOOP) {
@@ -513,7 +515,8 @@ public class YugabyteDBStreamingChangeEventSource implements
                                     LOGGER.debug("Received DML record {}", record);
 
                                     offsetContext.updateWalPosition(entry.getKey(), tabletId, lsn, lastCompletelyProcessedLsn, message.getCommitTime(),
-                                            String.valueOf(message.getTransactionId()), tableId, null/* taskContext.getSlotXmin(connection) */);
+                                            String.valueOf(message.getTransactionId()), tableId, null/* taskContext.getSlotXmin(connection) */,
+                                            table.isColocated());
 
                                     boolean dispatched = message.getOperation() != Operation.NOOP
                                             && dispatcher.dispatchDataChangeEvent(part, tableId, new YugabyteDBChangeRecordEmitter(part, offsetContext, clock, connectorConfig,
@@ -546,7 +549,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                 response.getKey(),
                                 response.getWriteId(),
                                 response.getSnapshotTime());
-                        offsetContext.getSourceInfo(entry.getKey() /* tableId */, tabletId)
+                        offsetContext.getSourceInfo(entry.getKey() /* tableId */, tabletId, table.isColocated() /* ignoreTableUUID */)
                                 .updateLastCommit(finalOpid);
 
                         LOGGER.debug("The final opid is " + finalOpid);

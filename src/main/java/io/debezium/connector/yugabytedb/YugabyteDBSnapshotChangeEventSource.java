@@ -427,10 +427,12 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                         Objects.requireNonNull(tId);
                       }
 
+                      // In case of snapshots, we do not want to ignore tableUUID while updating
+                      // OpId value for a table-tablet pair.
                       previousOffset.updateWalPosition(tableUUID, tabletId, lsn, lastCompletelyProcessedLsn,
                                                        message.getCommitTime(), 
                                                        String.valueOf(message.getTransactionId()), 
-                                                       tId, null);
+                                                       tId, null, false /* ignoreTableUUID */);
                       
                       boolean dispatched = (message.getOperation() != Operation.NOOP) && 
                           dispatcher.dispatchDataChangeEvent(part, tId, 
@@ -493,7 +495,8 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                     taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(tableUUID + "." + tabletId) : null);
                 }
                 
-                previousOffset.getSourceInfo(tableUUID, tabletId).updateLastCommit(finalOpId);
+                previousOffset.getSourceInfo(tableUUID, tabletId, false /* ignoreTableUUID */)
+                              .updateLastCommit(finalOpId);
             }
             
             // Reset the retry count here indicating that if the flow has reached here then
