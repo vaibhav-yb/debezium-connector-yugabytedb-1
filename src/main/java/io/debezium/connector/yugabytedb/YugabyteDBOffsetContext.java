@@ -273,7 +273,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
 
     public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig, OpId opId,
                                boolean colocated) {
-        this.tabletSourceInfo.put(tableUUID + "." + tabletId, new SourceInfo(connectorConfig, opId, colocated));
+        this.tabletSourceInfo.put(colocated ? (tableUUID + ".") : "" + tabletId, new SourceInfo(connectorConfig, opId, colocated));
     }
 
     public Map<String, SourceInfo> getTabletSourceInfo() {
