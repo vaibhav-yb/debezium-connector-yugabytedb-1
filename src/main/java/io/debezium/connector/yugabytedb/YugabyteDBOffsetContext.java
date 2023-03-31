@@ -214,7 +214,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         if (!tableColocationInfo.get(tableId)) {
             SourceInfo info = tabletSourceInfo.get(tabletId);
             if (info == null) {
-                tabletSourceInfo.put(tabletId, new SourceInfo(connectorConfig));
+                tabletSourceInfo.put(tabletId, new SourceInfo(connectorConfig, YugabyteDBOffsetContext.streamingStartLsn(), false));
             }
             return tabletSourceInfo.get(tabletId);
         }
@@ -273,6 +273,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
 
     public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig, OpId opId,
                                boolean colocated) {
+        this.tableColocationInfo.put(tableUUID, colocated);
         this.tabletSourceInfo.put((colocated ? tableUUID + "." : "") + tabletId, new SourceInfo(connectorConfig, opId, colocated));
     }
 
