@@ -182,8 +182,15 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                         .store(transactionContext.store(result));
     }
 
-    public Struct getSourceInfoForTablet(String tableId, String tabletId) {
+    public Struct getSourceInfoForTablet(String tableId, String tabletId, boolean ignoreTableUUID) {
+        if (ignoreTableUUID) {
+            return this.tabletSourceInfo.get(tabletId).struct();
+        }
+
         return this.tabletSourceInfo.get(tableId + "." + tabletId).struct();
+    }
+    public Struct getSourceInfoForTablet(String tableId, String tabletId) {
+        return getSourceInfoForTablet(tableId, tabletId, false /* ignoreTableUUID */);
     }
 
     @Override
