@@ -338,7 +338,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                     for (Pair<String, String> entry : tabletPairList) {
                         final String tabletId = entry.getValue();
                         curTabletId = entry.getValue();
-                        YBPartition part = new YBPartition(entry.getKey() /* tableId */, tabletId);
+                        YBPartition part = new YBPartition(entry.getKey() /* tableId */, tabletId, false /* colocated */);
 
                       OpId cp = offsetContext.lsn(entry.getKey() /* tableUUID */, tabletId);
 
