@@ -132,6 +132,9 @@ public class YugabyteDBStreamingChangeEventSource implements
 
         LOGGER.info("Starting the change streaming process now");
 
+        // For streaming, all the tables should be treated as non-colocated.
+        partitions.forEach(YBPartition::markTableAsColocated);
+
         if (!hasStartLsnStoredInContext) {
             LOGGER.info("No start opid found in the context.");
                 offsetContext = YugabyteDBOffsetContext.initialContext(connectorConfig, connection, clock, partitions);
@@ -275,7 +278,10 @@ public class YugabyteDBStreamingChangeEventSource implements
                 opId = YugabyteDBOffsetContext.streamingStartLsn();
             }
 
-            offsetContext.initSourceInfo(entry.getKey(), entry.getValue(), this.connectorConfig, opId);
+            // For streaming, we do not want any colocated information and want to process the tables
+            // based on just their tablet IDs - pass false as the 'colocated' flag to enforce the same.
+            offsetContext.initSourceInfo(entry.getKey(), entry.getValue(), this.connectorConfig, opId,
+                                         false /* colocated */);
             schemaNeeded.put(entry.getKey() + "." + entry.getValue(), Boolean.TRUE);
         }
 
@@ -424,8 +430,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                         if (message.getOperation() == Operation.COMMIT) {
                                             LOGGER.debug("LSN in case of COMMIT is " + lsn);
                                             offsetContext.updateWalPosition(entry.getKey(), tabletId, lsn, lastCompletelyProcessedLsn, message.getCommitTime(),
-                                                    String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */,
-                                                    table.isColocated() /* ignoreTableUUID */);
+                                                    String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */);
                                             commitMessage(part, offsetContext, lsn);
 
                                             if (recordsInTransactionalBlock.containsKey(entry.getKey() + "." + tabletId)) {
@@ -457,8 +462,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                     else if (message.getOperation() == Operation.COMMIT) {
                                         LOGGER.debug("LSN in case of COMMIT is " + lsn);
                                         offsetContext.updateWalPosition(entry.getKey(), tabletId, lsn, lastCompletelyProcessedLsn, message.getCommitTime(),
-                                                String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */,
-                                                table.isColocated() /* ignoreTableUUID */);
+                                                String.valueOf(message.getTransactionId()), null, null/* taskContext.getSlotXmin(connection) */);
                                         commitMessage(part, offsetContext, lsn);
                                         dispatcher.dispatchTransactionCommittedEvent(part, offsetContext);
 
@@ -515,8 +519,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                     LOGGER.debug("Received DML record {}", record);
 
                                     offsetContext.updateWalPosition(entry.getKey(), tabletId, lsn, lastCompletelyProcessedLsn, message.getCommitTime(),
-                                            String.valueOf(message.getTransactionId()), tableId, null/* taskContext.getSlotXmin(connection) */,
-                                            table.isColocated());
+                                            String.valueOf(message.getTransactionId()), tableId, null/* taskContext.getSlotXmin(connection) */);
 
                                     boolean dispatched = message.getOperation() != Operation.NOOP
                                             && dispatcher.dispatchDataChangeEvent(part, tableId, new YugabyteDBChangeRecordEmitter(part, offsetContext, clock, connectorConfig,
@@ -549,7 +552,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                 response.getKey(),
                                 response.getWriteId(),
                                 response.getSnapshotTime());
-                        offsetContext.getSourceInfo(entry.getKey() /* tableId */, tabletId, table.isColocated() /* ignoreTableUUID */)
+                        offsetContext.getSourceInfo(entry.getKey() /* tableId */, tabletId)
                                 .updateLastCommit(finalOpid);
 
                         LOGGER.debug("The final opid is " + finalOpid);
@@ -783,7 +786,8 @@ public class YugabyteDBStreamingChangeEventSource implements
 
             offsetContext.initSourceInfo(tableId, tabletId,
                                          this.connectorConfig,
-                                         OpId.from(pair.getCdcSdkCheckpoint()));
+                                         OpId.from(pair.getCdcSdkCheckpoint()),
+                                         false /* colocated */);
 
             LOGGER.info("Initialized offset context for tablet {} with OpId {}", tabletId, OpId.from(pair.getCdcSdkCheckpoint()));
 

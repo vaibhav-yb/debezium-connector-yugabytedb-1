@@ -25,9 +25,17 @@ public class YBPartition implements Partition {
     private final String tabletId;
     private final String tableId;
 
+    private boolean isTableColocated;
+
     public YBPartition(String tableId, String tabletId) {
         this.tableId = tableId;
         this.tabletId = tabletId;
+    }
+
+    public YBPartition(String tableId, String tabletId, boolean isTableColocated) {
+        this.tableId = tableId;
+        this.tabletId = tabletId;
+        this.isTableColocated = isTableColocated;
     }
 
     @Override
@@ -48,7 +56,20 @@ public class YBPartition implements Partition {
      * the same thing as using {@code p.getTableId() + "." + p.getTabletId()}
      */
     public String getId() {
-        return this.tableId + "." + this.tabletId;
+        if (!isTableColocated()) {
+            // If table is not colocated, we need to process the table just by its tablet ID.
+            return getTabletId();
+        }
+
+        return getTableId() + "." + getTabletId();
+    }
+
+    public boolean isTableColocated() {
+        return this.isTableColocated;
+    }
+
+    public void markTableAsColocated() {
+        this.isTableColocated = true;
     }
 
     @Override

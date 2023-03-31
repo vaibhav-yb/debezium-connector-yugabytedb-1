@@ -122,6 +122,9 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
             snapshotProgressListener.snapshotStarted(partition);
             Set<YBPartition> partitions = new YBPartition.Provider(connectorConfig).getPartitions();
 
+            // For snapshot, set all partitions to use tableID as identifier.
+            partitions.forEach(YBPartition::markTableAsColocated);
+
             LOGGER.info("Setting offsetContext/previousOffset for snapshot...");
             previousOffset = YugabyteDBOffsetContext.initialContextForSnapshot(this.connectorConfig, connection, clock, partitions);
 
@@ -286,7 +289,8 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
       for (Pair<String, String> entry : tableToTabletIds) {
         schemaNeeded.put(entry.getKey() + "." + entry.getValue(), Boolean.TRUE);
 
-        previousOffset.initSourceInfo(entry.getKey(), entry.getValue(), this.connectorConfig, YugabyteDBOffsetContext.snapshotStartLsn());
+        previousOffset.initSourceInfo(entry.getKey(), entry.getValue(), this.connectorConfig, YugabyteDBOffsetContext.snapshotStartLsn(),
+                                      tableIdToTable.get(entry.getKey()).isColocated());
         LOGGER.debug("Previous offset for tablet {} is {}", entry.getValue(), previousOffset.toString());
       }
 
@@ -340,7 +344,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                 YBTable table = tableIdToTable.get(tableUUID);
 
                 String tabletId = tableIdToTabletId.getValue();
-                YBPartition part = new YBPartition(tableUUID, tabletId);
+                YBPartition part = new YBPartition(tableUUID, tabletId, table.isColocated());
                 
                  // Check if snapshot is completed here, if it is, then break out of the loop
                 if (snapshotCompletedTablets.size() == tableToTabletForSnapshot.size()) {
@@ -350,7 +354,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                 }
 
                 // Skip the tablet if snapshot has already been taken for this tablet
-                if (snapshotCompletedTablets.contains(tableUUID + "." + tabletId)) {
+                if (snapshotCompletedTablets.contains(part.getId())) {
                   continue;
                 }
 
@@ -370,8 +374,8 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
 
                 GetChangesResponse resp = this.syncClient.getChangesCDCSDK(table,
                     connectorConfig.streamId(), tabletId, cp.getTerm(), cp.getIndex(), cp.getKey(),
-                    cp.getWrite_id(), cp.getTime(), schemaNeeded.get(tableUUID + "." + tabletId),
-                    taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(tableUUID + "." + tabletId) : null);
+                    cp.getWrite_id(), cp.getTime(), schemaNeeded.get(part.getId()),
+                    taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(part.getId()) : null);
                 
                 // Process the response
                 for (CdcService.CDCSDKProtoRecordPB record : 
@@ -402,7 +406,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                       LOGGER.debug("For table {}, received a DDL record {}", 
                                   message.getTable(), message.getSchema().toString());
                       
-                      schemaNeeded.put(tableUUID + "." + tabletId, Boolean.FALSE);
+                      schemaNeeded.put(part.getId(), Boolean.FALSE);
 
                       TableId tId = null;
                       if (message.getOperation() != Operation.NOOP) {
@@ -432,7 +436,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                       previousOffset.updateWalPosition(tableUUID, tabletId, lsn, lastCompletelyProcessedLsn,
                                                        message.getCommitTime(), 
                                                        String.valueOf(message.getTransactionId()), 
-                                                       tId, null, false /* ignoreTableUUID */);
+                                                       tId, null);
                       
                       boolean dispatched = (message.getOperation() != Operation.NOOP) && 
                           dispatcher.dispatchDataChangeEvent(part, tId, 
@@ -455,24 +459,12 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                 LOGGER.debug("Final OpId is {}", finalOpId);
 
                 // If EXPLICIT checkpointing is enabled then check if the checkpoint is the marker for snapshot completion
-                // and in case it is IMPLICIT checkpointing, the marker value should be checked on the from_op_id we are sending
-                // to the server.
-                if ((taskContext.shouldEnableExplicitCheckpointing()
-                       && isSnapshotCompleteMarker(OpId.from(tabletToExplicitCheckpoint.get(tableUUID + "." + tabletId))))
-                      || isSnapshotCompleteMarker(cp)) {
-                  // This will mark the snapshot completed for the tablet
-                  snapshotCompletedTablets.add(tableUUID + "." + tabletId);
-                  LOGGER.info("Snapshot completed for tablet {} belonging to table {} ({})",
-                    tabletId, table.getName(), tableUUID);
-                }
-
-                // If EXPLICIT checkpointing is enabled then check if the checkpoint is the marker for snapshot completion
                 // and in case it is IMPLICIT checkpointing, the marker value should be checked on the response op_id
                 // we are receiving from the server.
                 if (taskContext.shouldEnableExplicitCheckpointing()
                       && isSnapshotCompleteMarker(OpId.from(tabletToExplicitCheckpoint.get(tabletId)))) {
                   // This will mark the snapshot completed for the tablet
-                  snapshotCompletedTablets.add(tableUUID + "." + tabletId);
+                  snapshotCompletedTablets.add(part.getId());
                   LOGGER.info("[EXPLICIT] Snapshot completed for tablet {} belonging to table {} ({})",
                     tabletId, table.getName(), tableUUID);
 
@@ -480,10 +472,10 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                   GetChangesResponse tempResponse = this.syncClient.getChangesCDCSDK(table,
                     connectorConfig.streamId(), tabletId, tempOpId.getTerm(), tempOpId.getIndex(),
                     tempOpId.getKey(), tempOpId.getWrite_id(), tempOpId.getTime(),
-                    schemaNeeded.get(tableUUID + "." + tabletId),
-                    taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(tableUUID + "." + tabletId) : null);
+                    schemaNeeded.get(part.getId()),
+                    taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(part.getId()) : null);
                 } else if (!taskContext.shouldEnableExplicitCheckpointing() && isSnapshotCompleteMarker(finalOpId)) {
-                  snapshotCompletedTablets.add(tableUUID + "." + tabletId);
+                  snapshotCompletedTablets.add(part.getId());
                   LOGGER.info("[IMPLICIT] Snapshot completed for tablet {} belonging to table {} ({})",
                     tabletId, table.getName(), tableUUID);
 
@@ -491,11 +483,11 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                   GetChangesResponse tempResponse = this.syncClient.getChangesCDCSDK(table,
                     connectorConfig.streamId(), tabletId, tempOpId.getTerm(), tempOpId.getIndex(),
                     tempOpId.getKey(), tempOpId.getWrite_id(), tempOpId.getTime(),
-                    schemaNeeded.get(tableUUID + "." + tabletId),
-                    taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(tableUUID + "." + tabletId) : null);
+                    schemaNeeded.get(part.getId()),
+                    taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(part.getId()) : null);
                 }
                 
-                previousOffset.getSourceInfo(tableUUID, tabletId, false /* ignoreTableUUID */)
+                previousOffset.getSourceInfo(tableUUID, tabletId)
                               .updateLastCommit(finalOpId);
             }
             
