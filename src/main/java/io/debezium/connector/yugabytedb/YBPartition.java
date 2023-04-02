@@ -25,7 +25,7 @@ public class YBPartition implements Partition {
     private final String tabletId;
     private final String tableId;
 
-    private final boolean isTableColocated;
+    private boolean isTableColocated;
 
     public YBPartition(String tableId, String tabletId) {
         this.tableId = tableId;
