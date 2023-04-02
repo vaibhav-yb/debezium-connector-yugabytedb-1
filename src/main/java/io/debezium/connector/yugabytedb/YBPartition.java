@@ -25,11 +25,14 @@ public class YBPartition implements Partition {
     private final String tabletId;
     private final String tableId;
 
-    private boolean isTableColocated;
+    private final boolean isTableColocated;
 
     public YBPartition(String tableId, String tabletId) {
         this.tableId = tableId;
         this.tabletId = tabletId;
+
+        // By default, assume that the table is not colocated.
+        this.isTableColocated = false;
     }
 
     public YBPartition(String tableId, String tabletId, boolean isTableColocated) {

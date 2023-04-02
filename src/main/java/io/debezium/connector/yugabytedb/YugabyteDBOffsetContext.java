@@ -142,9 +142,12 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                 new SignalBasedIncrementalSnapshotContext<>());
         for (YBPartition p : partitions) {
             if (context.getTabletSourceInfo().get(p.getId()) == null) {
+                // While initializing partitions, we do pass the information whether a table is
+                // colocated, utilize the same information to further initialize context.
                 if (p.isTableColocated()) {
                     context.markTableAsColocated(p.getTableId());
                 }
+
                 context.initSourceInfo(p.getTableId(), p.getTabletId(), connectorConfig);
                 context.updateWalPosition(p.getTableId(), p.getTabletId(), lastCommitLsn, lastCompletelyProcessedLsn, clock.currentTimeAsInstant(), String.valueOf(txId), null, null);
             }
@@ -250,15 +253,17 @@ public class YugabyteDBOffsetContext implements OffsetContext {
     public void updateWalPosition(String tableUUID, String tabletId, OpId lsn, OpId lastCompletelyProcessedLsn,
                                   Instant commitTime,
                                   String txId, TableId tableId, Long xmin) {
-        // ignoreTableUUID is for the situations where we only want to store the OpIds against
-        // the table ID and not the tablet ID. One such case is the streaming of colocated tables.
         this.lastCompletelyProcessedLsn = lastCompletelyProcessedLsn;
 
-        String lookupPrefix = !tableColocationInfo.get(tableUUID) ? "" : tableUUID + ".";
+        // Only use the tableUUID as the prefix in case the table is colocated.
+        String lookupPrefix = tableColocationInfo.get(tableUUID) ? tableUUID + "." : "";
 
         sourceInfo.update(lookupPrefix, tabletId, lsn, commitTime, txId, tableId, xmin);
         SourceInfo info = this.tabletSourceInfo.get(lookupPrefix + tabletId);
 
+        // There is a possibility upon the transition from snapshot to streaming mode that we try
+        // to retrieve a SourceInfo which may not be available in the map as we will just be looking
+        // up using the tabletId. Store the SourceInfo in that case.
         if (info == null) {
             info = new SourceInfo(connectorConfig, lsn, tableColocationInfo.get(tableUUID));
         }

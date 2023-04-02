@@ -132,9 +132,6 @@ public class YugabyteDBStreamingChangeEventSource implements
 
         LOGGER.info("Starting the change streaming process now");
 
-        // For streaming, all the tables should be treated as non-colocated.
-        partitions.forEach(YBPartition::markTableAsColocated);
-
         if (!hasStartLsnStoredInContext) {
             LOGGER.info("No start opid found in the context.");
                 offsetContext = YugabyteDBOffsetContext.initialContext(connectorConfig, connection, clock, partitions);
