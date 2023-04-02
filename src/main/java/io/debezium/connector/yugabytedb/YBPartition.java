@@ -59,11 +59,6 @@ public class YBPartition implements Partition {
      * the same thing as using {@code p.getTableId() + "." + p.getTabletId()}
      */
     public String getId() {
-//        if (!isTableColocated()) {
-//            // If table is not colocated, we need to process the table just by its tablet ID.
-//            return getTabletId();
-//        }
-
         return getTableId() + "." + getTabletId();
     }
 
