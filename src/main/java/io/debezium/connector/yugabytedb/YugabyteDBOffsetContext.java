@@ -170,10 +170,6 @@ public class YugabyteDBOffsetContext implements OffsetContext {
     public Map<String, ?> getOffset() {
         Map<String, Object> result = new HashMap<>();
 
-        if (this.tabletSourceInfo == null) {
-            LOGGER.info("tablet source Info is null");
-        }
-
         for (Map.Entry<String, SourceInfo> entry : this.tabletSourceInfo.entrySet()) {
             // The entry.getKey() here would be tableId.tabletId or just tabletId
             result.put(entry.getKey(), entry.getValue().lsn().toSerString());
@@ -199,6 +195,11 @@ public class YugabyteDBOffsetContext implements OffsetContext {
     }
 
     public SourceInfo getSourceInfo(YBPartition partition) {
+        SourceInfo info = tabletSourceInfo.get(partition.getId());
+        if (info == null) {
+            tabletSourceInfo.put(partition.getId(), new SourceInfo(connectorConfig, YugabyteDBOffsetContext.streamingStartLsn()));
+        }
+
         return tabletSourceInfo.get(partition.getId());
     }
 
