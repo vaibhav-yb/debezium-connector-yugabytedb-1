@@ -413,7 +413,7 @@ public class YugabyteDBSnapshotTest extends YugabyteDBContainerTestBase {
                       LOGGER.info("Consumed " + totalConsumedRecords + " records");
                   }
 
-                  return totalConsumedRecords.get() >= recordsCount;
+                  return totalConsumedRecords.get() == recordsCount;
               });
         } catch (ConditionTimeoutException exception) {
             fail("Failed to consume " + recordsCount + " in " + seconds + " seconds", exception);
