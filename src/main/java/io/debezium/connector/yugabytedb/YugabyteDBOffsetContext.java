@@ -196,6 +196,10 @@ public class YugabyteDBOffsetContext implements OffsetContext {
             if (entry.getValue() == null) {
                 LOGGER.info("entry.getValue() is null for {}", entry.getKey());
             }
+
+            if (entry.getValue().lsn() == null) {
+                LOGGER.info("entry.getValue().lsn() is null for {}", entry.getKey());
+            }
             result.put(entry.getKey(), entry.getValue().lsn().toSerString());
         }
 
