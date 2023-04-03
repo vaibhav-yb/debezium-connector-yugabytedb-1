@@ -224,7 +224,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                              YugabyteDBOffsetContext offsetContext,
                              boolean previousOffsetPresent)
             throws Exception {
-        LOGGER.debug("The offset is " + offsetContext.getOffset());
+//        LOGGER.debug("The offset is " + offsetContext.getOffset());
 
         LOGGER.info("Processing messages");
 
