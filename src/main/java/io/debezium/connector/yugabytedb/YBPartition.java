@@ -59,7 +59,7 @@ public class YBPartition implements Partition {
      * colocated) or {@code tabletId} (if table is not colocated)
      */
     public String getId() {
-        if (isTableColocated) {
+        if (!isTableColocated) {
             return getTabletId();
         }
 
