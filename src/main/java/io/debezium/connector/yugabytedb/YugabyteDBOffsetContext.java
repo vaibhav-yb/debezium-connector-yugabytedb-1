@@ -188,18 +188,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         }
 
         for (Map.Entry<String, SourceInfo> entry : this.tabletSourceInfo.entrySet()) {
-            // The entry.getKey() here would be tableId.tabletId
-            if (entry.getKey() == null) {
-                LOGGER.info("entry.getKey is null");
-            }
-
-            if (entry.getValue() == null) {
-                LOGGER.info("entry.getValue() is null for {}", entry.getKey());
-            }
-
-            if (entry.getValue().lsn() == null) {
-                LOGGER.info("entry.getValue().lsn() is null for {}", entry.getKey());
-            }
+            // The entry.getKey() here would be tableId.tabletId or just tabletId
             result.put(entry.getKey(), entry.getValue().lsn().toSerString());
         }
 
@@ -293,10 +282,6 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         this.tabletSourceInfo.put(lookupPrefix + tabletId, info);
     }
 
-//    public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig) {
-//        this.tabletSourceInfo.put(tableUUID + "." + tabletId, new SourceInfo(connectorConfig));
-//    }
-
     public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig, OpId opId,
                                boolean colocated) {
         this.tableColocationInfo.put(tableUUID, colocated);
@@ -307,13 +292,10 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         return tabletSourceInfo;
     }
 
-    public void updateCommitPosition(String tableUUID, String tabletId, OpId lsn,
-                                     OpId lastCompletelyProcessedLsn) {
+    public void updateCommitPosition(OpId lsn, OpId lastCompletelyProcessedLsn) {
         this.lastCompletelyProcessedLsn = lastCompletelyProcessedLsn;
         this.lastCommitLsn = lsn;
         sourceInfo.updateLastCommit(lsn);
-        SourceInfo info = getSourceInfo(tableUUID, tabletId);
-        info.updateLSN(lsn);
     }
 
     boolean hasLastKnownPosition() {
