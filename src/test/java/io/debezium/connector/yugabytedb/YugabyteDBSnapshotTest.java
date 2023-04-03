@@ -83,12 +83,14 @@ public class YugabyteDBSnapshotTest extends YugabyteDBContainerTestBase {
         TestHelper.dropAllSchemas();
         createTables(colocation);
 
+
         int recordCountT1 = 5000;
 
         // Insert records in the table test_1
         insertBulkRecords(recordCountT1, "public.test_1");
 
-        // Insert records in the table all_types
+        // Create table and insert records in all_types
+        TestHelper.executeInDatabase(HelperStrings.CREATE_ALL_TYPES, DEFAULT_COLOCATED_DB_NAME);
         TestHelper.executeInDatabase(HelperStrings.INSERT_ALL_TYPES, DEFAULT_COLOCATED_DB_NAME);
         TestHelper.executeInDatabase(HelperStrings.INSERT_ALL_TYPES, DEFAULT_COLOCATED_DB_NAME);
 
