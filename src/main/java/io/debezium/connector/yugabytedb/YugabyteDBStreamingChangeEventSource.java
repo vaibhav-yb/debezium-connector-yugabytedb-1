@@ -275,7 +275,7 @@ public class YugabyteDBStreamingChangeEventSource implements
 
             // For streaming, we do not want any colocated information and want to process the tables
             // based on just their tablet IDs - pass false as the 'colocated' flag to enforce the same.
-            YBPartition p = new YBPartition(entry.getKey(), entry.getValue(), tableIdToTable.get(entry.getKey()).isColocated());
+            YBPartition p = new YBPartition(entry.getKey(), entry.getValue(), false /* colocated */);
             offsetContext.initSourceInfo(p, this.connectorConfig, opId);
             schemaNeeded.put(p.getId(), Boolean.TRUE);
         }
