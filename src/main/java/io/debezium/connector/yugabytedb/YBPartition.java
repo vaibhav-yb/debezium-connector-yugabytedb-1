@@ -55,10 +55,14 @@ public class YBPartition implements Partition {
     }
 
     /**
-     * @return the ID of this partition in the format {@code tableId.tabletId}, this is essentially
-     * the same thing as using {@code p.getTableId() + "." + p.getTabletId()}
+     * @return the ID of this partition in the format {@code tableId.tabletId} (if table is
+     * colocated) or {@code tabletId} (if table is not colocated)
      */
     public String getId() {
+        if (isTableColocated) {
+            return getTabletId();
+        }
+
         return getTableId() + "." + getTabletId();
     }
 

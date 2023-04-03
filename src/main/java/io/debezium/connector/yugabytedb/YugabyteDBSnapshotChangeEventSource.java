@@ -287,10 +287,9 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
       Set<String> snapshotCompletedPreviously = new HashSet<>();
 
       for (Pair<String, String> entry : tableToTabletIds) {
-        schemaNeeded.put(entry.getKey() + "." + entry.getValue(), Boolean.TRUE);
-
-        previousOffset.initSourceInfo(entry.getKey(), entry.getValue(), this.connectorConfig, YugabyteDBOffsetContext.snapshotStartLsn(),
-                                      tableIdToTable.get(entry.getKey()).isColocated());
+        YBPartition p = new YBPartition(entry.getKey(), entry.getValue(), tableIdToTable.get(entry.getKey()).isColocated());
+        schemaNeeded.put(p.getId(), Boolean.TRUE);
+        previousOffset.initSourceInfo(p, this.connectorConfig, YugabyteDBOffsetContext.snapshotStartLsn());
         LOGGER.debug("Previous offset for tablet {} is {}", entry.getValue(), previousOffset.toString());
       }
 
@@ -358,7 +357,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                   continue;
                 }
 
-                OpId cp = previousOffset.snapshotLSN(tableUUID, tabletId);
+                OpId cp = previousOffset.snapshotLSN(part);
 
                 if (LOGGER.isDebugEnabled()
                     || (connectorConfig.logGetChanges() && System.currentTimeMillis() >= (lastLoggedTimeForGetChanges + connectorConfig.logGetChangesIntervalMs()))) {
@@ -433,7 +432,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
 
                       // In case of snapshots, we do not want to ignore tableUUID while updating
                       // OpId value for a table-tablet pair.
-                      previousOffset.updateWalPosition(tableUUID, tabletId, lsn, lastCompletelyProcessedLsn,
+                      previousOffset.updateWalPosition(part, lsn, lastCompletelyProcessedLsn,
                                                        message.getCommitTime(), 
                                                        String.valueOf(message.getTransactionId()), 
                                                        tId, null);
@@ -443,7 +442,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                               new YugabyteDBChangeRecordEmitter(part, previousOffset, clock, 
                                                                 this.connectorConfig, schema, 
                                                                 connection, tId, message, 
-                                                                pgSchemaName, tableUUID, tabletId,
+                                                                pgSchemaName, tabletId,
                                                                 taskContext.isBeforeImageEnabled()));
 
                       LOGGER.debug("Dispatched snapshot record successfully");
@@ -487,8 +486,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                     taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(part.getId()) : null);
                 }
                 
-                previousOffset.getSourceInfo(tableUUID, tabletId)
-                              .updateLastCommit(finalOpId);
+                previousOffset.getSourceInfo(part).updateLastCommit(finalOpId);
             }
             
             // Reset the retry count here indicating that if the flow has reached here then
