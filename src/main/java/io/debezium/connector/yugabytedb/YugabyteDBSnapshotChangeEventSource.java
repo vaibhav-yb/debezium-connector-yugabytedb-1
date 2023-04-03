@@ -344,7 +344,7 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
                 YBTable table = tableIdToTable.get(tableUUID);
 
                 String tabletId = tableIdToTabletId.getValue();
-                YBPartition part = new YBPartition(tableUUID, tabletId, table.isColocated());
+                YBPartition part = new YBPartition(tableUUID, tabletId, true /* colocated */);
                 
                  // Check if snapshot is completed here, if it is, then break out of the loop
                 if (snapshotCompletedTablets.size() == tableToTabletForSnapshot.size()) {
