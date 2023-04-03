@@ -94,6 +94,10 @@ public final class SourceInfo extends BaseSourceInfo {
         return this;
     }
 
+    protected SourceInfo update(String tableUUID, String tabletId, OpId lsn) {
+        this.lsn = lsn;
+    }
+
     /**
      * Updates the source with the LSN of the last committed transaction.
      */
