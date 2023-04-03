@@ -358,7 +358,9 @@ public class YugabyteDBStreamingChangeEventSource implements
                         LOGGER.debug("Requesting schema for tablet: {}", tabletId);
                       }
 
-                      LOGGER.info("VKVK explicit cp for {} is {}.{}", part.getTabletId(), tabletToExplicitCheckpoint.get(part.getTabletId()).getTerm(), tabletToExplicitCheckpoint.get(part.getTabletId()).getIndex());
+                      if (tabletToExplicitCheckpoint.get(part.getTabletId()) != null) {
+                          LOGGER.info("VKVK explicit cp for {} is {}.{}", part.getTabletId(), tabletToExplicitCheckpoint.get(part.getTabletId()).getTerm(), tabletToExplicitCheckpoint.get(part.getTabletId()).getIndex());
+                      }
 
                       try {
                         response = this.syncClient.getChangesCDCSDK(
