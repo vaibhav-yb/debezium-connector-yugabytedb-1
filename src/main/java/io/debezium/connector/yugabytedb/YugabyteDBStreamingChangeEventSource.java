@@ -358,10 +358,6 @@ public class YugabyteDBStreamingChangeEventSource implements
                         LOGGER.debug("Requesting schema for tablet: {}", tabletId);
                       }
 
-                      if (tabletToExplicitCheckpoint.get(part.getTabletId()) != null) {
-                          LOGGER.info("VKVK explicit cp for {} is {}.{}", part.getTabletId(), tabletToExplicitCheckpoint.get(part.getTabletId()).getTerm(), tabletToExplicitCheckpoint.get(part.getTabletId()).getIndex());
-                      }
-
                       try {
                         response = this.syncClient.getChangesCDCSDK(
                             table, streamId, tabletId, cp.getTerm(), cp.getIndex(), cp.getKey(),
@@ -693,7 +689,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                 // TODO: The transaction_id field is getting populated somewhere and see if it can
                 // be removed or blocked from getting added to this map.
                 if (!entry.getKey().equals("transaction_id")) {
-                    LOGGER.info("Tablet: {} OpId: {}", entry.getKey(), entry.getValue());
+                    LOGGER.debug("Tablet: {} OpId: {}", entry.getKey(), entry.getValue());
 
                     // Parse the string to get the OpId object.
                     OpId tempOpId = OpId.valueOf((String) entry.getValue());
