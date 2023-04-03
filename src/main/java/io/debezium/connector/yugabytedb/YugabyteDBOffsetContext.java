@@ -183,8 +183,19 @@ public class YugabyteDBOffsetContext implements OffsetContext {
     public Map<String, ?> getOffset() {
         Map<String, Object> result = new HashMap<>();
 
+        if (this.tabletSourceInfo == null) {
+            LOGGER.info("tablet source Info is null");
+        }
+
         for (Map.Entry<String, SourceInfo> entry : this.tabletSourceInfo.entrySet()) {
             // The entry.getKey() here would be tableId.tabletId
+            if (entry.getKey() == null) {
+                LOGGER.info("entry.getKey is null");
+            }
+
+            if (entry.getValue() == null) {
+                LOGGER.info("entry.getValue() is null for {}", entry.getKey());
+            }
             result.put(entry.getKey(), entry.getValue().lsn().toSerString());
         }
 
