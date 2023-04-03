@@ -142,10 +142,10 @@ public class YugabyteDBSnapshotTest extends YugabyteDBContainerTestBase {
         TestHelper.executeInDatabase(
           String.format(insertStringFormat,
             String.format("generate_series(%d, %d)",
-              recordCountT1, recordCountT1 + 1000)), DEFAULT_COLOCATED_DB_NAME);
+              recordCountT1, recordCountT1 + 1001)), DEFAULT_COLOCATED_DB_NAME);
 
-        // Total records inserted at this stage would be recordCountT1 + 1000
-        int totalRecords = recordCountT1 + 1000;
+        // Total records inserted at this stage would be recordCountT1 + 1001
+        int totalRecords = recordCountT1 + 1001;
 
         // Consume and assert that we have received all the records now.
         List<SourceRecord> records = new ArrayList<>();
