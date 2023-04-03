@@ -98,7 +98,7 @@ public class YBPartition implements Partition {
 
     @Override
     public int hashCode() {
-        return getId().hashCode();
+        return getFullPartitionName().hashCode();
     }
 
     @Override

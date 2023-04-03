@@ -36,7 +36,7 @@ public class YugabyteDBStreamingTaskMetrics extends AbstractYugabyteDBTaskMetric
                         "server", taskContext.getConnectorName(),
                         "task", taskId,
                         "context", "streaming",
-                        "partition", partition.getTableId() + "." + partition.getTabletId()),
+                        "partition", partition.getFullPartitionName()),
                     metadataProvider), connectorConfig, taskId);
         connectionMeter = new ConnectionMeter();
     }

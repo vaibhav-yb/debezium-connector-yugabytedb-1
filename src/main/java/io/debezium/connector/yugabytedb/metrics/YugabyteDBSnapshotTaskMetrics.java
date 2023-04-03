@@ -34,7 +34,7 @@ public class YugabyteDBSnapshotTaskMetrics extends AbstractYugabyteDBTaskMetrics
                                 "server", taskContext.getConnectorName(),
                                 "task", taskId,
                                 "context", "snapshot",
-                                "partition", partition.getTableId() + "." + partition.getTabletId()),
+                                "partition", partition.getFullPartitionName()),
                         metadataProvider), connectorConfig, taskId);
     }
 
