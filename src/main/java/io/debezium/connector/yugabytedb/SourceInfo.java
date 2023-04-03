@@ -46,20 +46,17 @@ public final class SourceInfo extends BaseSourceInfo {
     private String tableName;
     private String tabletId;
     private String tableUUID;
-    private boolean colocated;
 
     protected SourceInfo(YugabyteDBConnectorConfig connectorConfig) {
         super(connectorConfig);
         this.dbName = connectorConfig.databaseName();
     }
 
-    protected SourceInfo(YugabyteDBConnectorConfig connectorConfig, OpId lastCommitLsn,
-                         boolean colocated) {
+    protected SourceInfo(YugabyteDBConnectorConfig connectorConfig, OpId lastCommitLsn) {
         super(connectorConfig);
         this.dbName = connectorConfig.databaseName();
         this.lastCommitLsn = lastCommitLsn;
         this.lsn = lastCommitLsn;
-        this.colocated = colocated;
     }
 
     /**
@@ -151,10 +148,6 @@ public final class SourceInfo extends BaseSourceInfo {
 
     String tableName() {
         return tableName;
-    }
-
-    public boolean isColocated() {
-        return this.colocated;
     }
 
     @Override
