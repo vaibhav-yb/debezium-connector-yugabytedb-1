@@ -94,11 +94,6 @@ public final class SourceInfo extends BaseSourceInfo {
         return this;
     }
 
-    protected SourceInfo updateLSN(OpId lsn) {
-        this.lsn = lsn;
-        return this;
-    }
-
     /**
      * Updates the source with the LSN of the last committed transaction.
      */
