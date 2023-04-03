@@ -287,7 +287,8 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
       Set<String> snapshotCompletedPreviously = new HashSet<>();
 
       for (Pair<String, String> entry : tableToTabletIds) {
-        YBPartition p = new YBPartition(entry.getKey(), entry.getValue(), tableIdToTable.get(entry.getKey()).isColocated());
+        // We can use tableIdToTable.get(entry.getKey()).isColocated() to get actual status.
+        YBPartition p = new YBPartition(entry.getKey(), entry.getValue(), true /* colocated */);
         schemaNeeded.put(p.getId(), Boolean.TRUE);
         previousOffset.initSourceInfo(p, this.connectorConfig, YugabyteDBOffsetContext.snapshotStartLsn());
         LOGGER.debug("Previous offset for tablet {} is {}", entry.getValue(), previousOffset.toString());

@@ -231,9 +231,6 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                                   String txId, TableId tableId, Long xmin) {
         this.lastCompletelyProcessedLsn = lastCompletelyProcessedLsn;
 
-        // Only use the tableUUID as the prefix in case the table is colocated.
-        String lookupPrefix = partition.isTableColocated() ? partition.getTableId() + "." : "";
-
         sourceInfo.update(partition, lsn, commitTime, txId, tableId, xmin);
         SourceInfo info = this.tabletSourceInfo.get(partition.getId());
 
