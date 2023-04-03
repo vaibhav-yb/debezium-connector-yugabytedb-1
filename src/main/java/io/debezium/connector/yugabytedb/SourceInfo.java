@@ -44,8 +44,6 @@ public final class SourceInfo extends BaseSourceInfo {
     private Instant timestamp;
     private String schemaName;
     private String tableName;
-    private String tabletId;
-    private String tableUUID;
 
     protected SourceInfo(YugabyteDBConnectorConfig connectorConfig) {
         super(connectorConfig);
@@ -86,8 +84,6 @@ public final class SourceInfo extends BaseSourceInfo {
         if (tableId != null && tableId.table() != null) {
             this.tableName = tableId.table();
         }
-        this.tableUUID = partition.getTableId();
-        this.tabletId = partition.getTabletId();
         return this;
     }
 

@@ -482,7 +482,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                                             + " the table is " + message.getTable());
 
                                     // If a DDL message is received for a tablet, we do not need its schema again
-                                    schemaNeeded.put(entry.getKey() + "." + tabletId, Boolean.FALSE);
+                                    schemaNeeded.put(part.getId(), Boolean.FALSE);
 
                                     TableId tableId = null;
                                     if (message.getOperation() != Operation.NOOP) {
