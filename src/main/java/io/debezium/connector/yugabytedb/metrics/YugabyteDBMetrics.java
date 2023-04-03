@@ -113,7 +113,7 @@ public class YugabyteDBMetrics {
           mBeanServer.registerMBean(this, name);
           break;
         } catch (InstanceAlreadyExistsException e) {
-          LOGGER.info("Metric name: {}", name);
+          LOGGER.info("Metric name: {} and existing message", name, e);
           if (attempt < REGISTRATION_RETRIES) {
             LOGGER.warn(
               "Unable to register metrics as an old set with the same name exists, retrying in {} (attempt {} out of {})",
