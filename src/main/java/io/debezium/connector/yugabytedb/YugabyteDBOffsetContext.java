@@ -146,6 +146,8 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                 // colocated, utilize the same information to further initialize context.
                 if (p.isTableColocated()) {
                     context.markTableAsColocated(p.getTableId());
+                } else {
+                    context.markTableNonColocated(p.getTableId());
                 }
 
                 context.initSourceInfo(p.getTableId(), p.getTabletId(), connectorConfig);
@@ -201,6 +203,10 @@ public class YugabyteDBOffsetContext implements OffsetContext {
 
     public void markTableAsColocated(String tableUUID) {
         this.tableColocationInfo.put(tableUUID, true);
+    }
+
+    public void markTableNonColocated(String tableUUID) {
+        this.tableColocationInfo.put(tableUUID, false);
     }
 
     @Override
