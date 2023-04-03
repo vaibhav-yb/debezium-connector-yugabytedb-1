@@ -313,7 +313,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         this.lastCommitLsn = lsn;
         sourceInfo.updateLastCommit(lsn);
         SourceInfo info = getSourceInfo(tableUUID, tabletId);
-        info.update(tableUUID, tabletId, lsn);
+        info.updateLSN(lsn);
     }
 
     boolean hasLastKnownPosition() {

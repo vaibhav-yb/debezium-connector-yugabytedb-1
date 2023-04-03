@@ -94,8 +94,9 @@ public final class SourceInfo extends BaseSourceInfo {
         return this;
     }
 
-    protected SourceInfo update(String tableUUID, String tabletId, OpId lsn) {
+    protected SourceInfo updateLSN(OpId lsn) {
         this.lsn = lsn;
+        return this;
     }
 
     /**
