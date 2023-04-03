@@ -358,11 +358,13 @@ public class YugabyteDBStreamingChangeEventSource implements
                         LOGGER.debug("Requesting schema for tablet: {}", tabletId);
                       }
 
+                      LOGGER.info("VKVK explicit cp for {} is {}.{}", part.getTabletId(), tabletToExplicitCheckpoint.get(part.getTabletId()).getTerm(), tabletToExplicitCheckpoint.get(part.getTabletId()).getIndex());
+
                       try {
                         response = this.syncClient.getChangesCDCSDK(
                             table, streamId, tabletId, cp.getTerm(), cp.getIndex(), cp.getKey(),
                             cp.getWrite_id(), cp.getTime(), schemaNeeded.get(entry.getKey() + "." + tabletId),
-                            taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(entry.getKey() + "." + tabletId) : null);
+                            taskContext.shouldEnableExplicitCheckpointing() ? tabletToExplicitCheckpoint.get(part.getTabletId()) : null);
                       } catch (CDCErrorException cdcException) {
                         // Check if exception indicates a tablet split.
                         LOGGER.debug("Code received in CDCErrorException: {}", cdcException.getCDCError().getCode());
