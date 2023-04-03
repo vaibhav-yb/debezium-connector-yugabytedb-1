@@ -89,8 +89,8 @@ public class YugabyteDBSnapshotTest extends YugabyteDBContainerTestBase {
         insertBulkRecords(recordCountT1, "public.test_1");
 
         // Insert records in the table all_types
-        TestHelper.executeInDatabase(DEFAULT_COLOCATED_DB_NAME, HelperStrings.INSERT_ALL_TYPES);
-        TestHelper.executeInDatabase(DEFAULT_COLOCATED_DB_NAME, HelperStrings.INSERT_ALL_TYPES);
+        TestHelper.executeInDatabase(HelperStrings.INSERT_ALL_TYPES, DEFAULT_COLOCATED_DB_NAME);
+        TestHelper.executeInDatabase(HelperStrings.INSERT_ALL_TYPES, DEFAULT_COLOCATED_DB_NAME);
 
         String dbStreamId = TestHelper.getNewDbStreamId(DEFAULT_COLOCATED_DB_NAME, "test_1");
         Configuration.Builder configBuilder = TestHelper.getConfigBuilder(DEFAULT_COLOCATED_DB_NAME, "public.test_1,public.all_types", dbStreamId);
