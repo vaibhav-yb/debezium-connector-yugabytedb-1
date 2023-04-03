@@ -121,10 +121,6 @@ public class YugabyteDBSnapshotChangeEventSource extends AbstractSnapshotChangeE
         try {
             snapshotProgressListener.snapshotStarted(partition);
             Set<YBPartition> partitions = new YBPartition.Provider(connectorConfig).getPartitions();
-            LOGGER.info("Partitions received in getPartitions:");
-            for (YBPartition ppp : partitions) {
-              LOGGER.info(ppp.toString());
-            }
 
             // For snapshot, set all partitions to use tableID as identifier.
             partitions.forEach(YBPartition::markTableAsColocated);

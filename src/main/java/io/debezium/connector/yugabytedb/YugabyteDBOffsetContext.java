@@ -240,7 +240,6 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         // to retrieve a SourceInfo which may not be available in the map as we will just be looking
         // up using the tabletId. Store the SourceInfo in that case.
         if (info == null) {
-            LOGGER.info("Info is null for ID {}, creating a new sourceinfo", partition.getId());
             info = new SourceInfo(connectorConfig, lsn);
         }
 
@@ -249,7 +248,6 @@ public class YugabyteDBOffsetContext implements OffsetContext {
     }
 
     public void initSourceInfo(YBPartition partition, YugabyteDBConnectorConfig connectorConfig, OpId opId) {
-        LOGGER.info("Initializing source info for partition {}", partition);
         this.tabletSourceInfo.put(partition.getId(), new SourceInfo(connectorConfig, opId));
     }
 
