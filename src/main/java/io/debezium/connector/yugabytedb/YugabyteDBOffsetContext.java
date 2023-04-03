@@ -92,7 +92,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                 this.lastCommitLsn = c.lastCommitLsn;
                 String tableUUID = context.getKey().getTableId();
                 String tabletId = context.getKey().getTabletId();
-                initSourceInfo(tableUUID, tabletId, config);
+                initSourceInfo(tableUUID, tabletId, config, c.lastCompletelyProcessedLsn, context.getKey().isTableColocated());
                 this.updateWalPosition(tableUUID, tabletId,
                         this.lastCommitLsn, lastCompletelyProcessedLsn, null, null, null, null);
             }
@@ -150,7 +150,7 @@ public class YugabyteDBOffsetContext implements OffsetContext {
                     context.markTableNonColocated(p.getTableId());
                 }
 
-                context.initSourceInfo(p.getTableId(), p.getTabletId(), connectorConfig);
+                context.initSourceInfo(p.getTableId(), p.getTabletId(), connectorConfig, lastCompletelyProcessedLsn, p.isTableColocated());
                 context.updateWalPosition(p.getTableId(), p.getTabletId(), lastCommitLsn, lastCompletelyProcessedLsn, clock.currentTimeAsInstant(), String.valueOf(txId), null, null);
             }
         }
@@ -293,9 +293,9 @@ public class YugabyteDBOffsetContext implements OffsetContext {
         this.tabletSourceInfo.put(lookupPrefix + tabletId, info);
     }
 
-    public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig) {
-        this.tabletSourceInfo.put(tableUUID + "." + tabletId, new SourceInfo(connectorConfig));
-    }
+//    public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig) {
+//        this.tabletSourceInfo.put(tableUUID + "." + tabletId, new SourceInfo(connectorConfig));
+//    }
 
     public void initSourceInfo(String tableUUID, String tabletId, YugabyteDBConnectorConfig connectorConfig, OpId opId,
                                boolean colocated) {
