@@ -790,9 +790,6 @@ public class YugabyteDBStreamingChangeEventSource implements
             // Add the flag to indicate that we need the schema for the new tablets so that the schema can be registered.
             schemaNeeded.put(p.getId(), Boolean.TRUE);
         }
-
-        Print.tabletCount(tabletPairList);
-        Print.tabletList(tabletPairList);
     }
 
     private void handleTabletSplit(CDCErrorException cdcErrorException,
@@ -837,6 +834,9 @@ public class YugabyteDBStreamingChangeEventSource implements
         for (TabletCheckpointPair pair : getTabletListResponse.getTabletCheckpointPairList()) {
             addTabletIfNotPresent(tabletPairList, pair, tableId, offsetContext, schemaNeeded);
         }
+
+        Print.tabletCount(tabletPairList);
+        Print.tabletList(tabletPairList);
     }
 
     /**
