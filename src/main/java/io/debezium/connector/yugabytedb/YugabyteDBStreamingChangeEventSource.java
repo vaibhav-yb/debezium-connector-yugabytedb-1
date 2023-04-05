@@ -10,6 +10,7 @@ import io.debezium.connector.yugabytedb.connection.*;
 import io.debezium.connector.yugabytedb.connection.ReplicationMessage.Operation;
 import io.debezium.connector.yugabytedb.connection.pgproto.YbProtoReplicationMessage;
 import io.debezium.connector.yugabytedb.spi.Snapshotter;
+import io.debezium.connector.yugabytedb.util.Print;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
@@ -789,6 +790,9 @@ public class YugabyteDBStreamingChangeEventSource implements
             // Add the flag to indicate that we need the schema for the new tablets so that the schema can be registered.
             schemaNeeded.put(p.getId(), Boolean.TRUE);
         }
+
+        Print.tabletCount(tabletPairList);
+        Print.tabletList(tabletPairList);
     }
 
     private void handleTabletSplit(CDCErrorException cdcErrorException,
