@@ -358,7 +358,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                             // handle tablet split and delete the tablet from the waiting list.
 
                             // Call getChanges to make sure checkpoint is set on the cdc_state table.
-                            LOGGER.info("Calling GetChanges to ensure explicit checkpoint is set to {}.{}", explicitCheckpoint.getTerm(), explicitCheckpoint.getIndex());
+                            LOGGER.info("Calling GetChanges on {} to ensure explicit checkpoint is set to {}.{}", part.getId(), explicitCheckpoint.getTerm(), explicitCheckpoint.getIndex());
                             try {
                                 // This will throw an error saying tablet split detected as we are calling GetChanges again on the
                                 // same checkpoint - handle the error and move ahead.
@@ -397,9 +397,9 @@ public class YugabyteDBStreamingChangeEventSource implements
                       if (taskContext.shouldEnableExplicitCheckpointing()) {
                         CdcSdkCheckpoint ecp = tabletToExplicitCheckpoint.get(part.getId());
                         if (ecp != null) {
-                            LOGGER.info("Requesting changes, explicit checkpointing: {}.{} from_op_id: {}.{}", ecp.getTerm(), ecp.getIndex(), cp.getTerm(), cp.getIndex());
+                            LOGGER.info("Requesting changes for tablet {}, explicit checkpointing: {}.{} from_op_id: {}.{}", part.getId(), ecp.getTerm(), ecp.getIndex(), cp.getTerm(), cp.getIndex());
                         } else {
-                            LOGGER.info("Requesting changes, explicit checkpoint is null and from_op_id: {}.{}", cp.getTerm(), cp.getIndex());
+                            LOGGER.info("Requesting changes for tablet {}, explicit checkpoint is null and from_op_id: {}.{}", part.getId(), cp.getTerm(), cp.getIndex());
                         }
                       }
 
@@ -763,7 +763,7 @@ public class YugabyteDBStreamingChangeEventSource implements
         }
 
         try {
-            LOGGER.info("Committing offsets on server");
+            LOGGER.info("{}|Committing offsets on server", taskContext.getTaskId());
 
             for (Map.Entry<String, ?> entry : offset.entrySet()) {
                 // TODO: The transaction_id field is getting populated somewhere and see if it can
@@ -775,7 +775,7 @@ public class YugabyteDBStreamingChangeEventSource implements
                     OpId tempOpId = OpId.valueOf((String) entry.getValue());
                     this.tabletToExplicitCheckpoint.put(entry.getKey(), tempOpId.toCdcSdkCheckpoint());
 
-                    LOGGER.debug("Committed checkpoint on server for stream ID {} tablet {} with term {} index {}",
+                    LOGGER.info("Committed checkpoint on server for stream ID {} tablet {} with term {} index {}",
                                 this.connectorConfig.streamId(), entry.getKey(), tempOpId.getTerm(), tempOpId.getIndex());
                 }
             }
