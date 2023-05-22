@@ -775,8 +775,8 @@ public class YugabyteDBStreamingChangeEventSource implements
                     OpId tempOpId = OpId.valueOf((String) entry.getValue());
                     this.tabletToExplicitCheckpoint.put(entry.getKey(), tempOpId.toCdcSdkCheckpoint());
 
-                    LOGGER.info("Committed checkpoint on server for stream ID {} tablet {} with term {} index {}",
-                                this.connectorConfig.streamId(), entry.getKey(), tempOpId.getTerm(), tempOpId.getIndex());
+                    LOGGER.info("{}|Committed checkpoint on server for stream ID {} tablet {} with term {} index {}",
+                                taskContext.getTaskId(), this.connectorConfig.streamId(), entry.getKey(), tempOpId.getTerm(), tempOpId.getIndex());
                 }
             }
         } catch (Exception e) {
