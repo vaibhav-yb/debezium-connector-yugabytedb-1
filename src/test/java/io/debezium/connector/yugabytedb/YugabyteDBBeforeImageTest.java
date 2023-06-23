@@ -3,11 +3,16 @@ package io.debezium.connector.yugabytedb;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.connect.source.SourceRecord;
@@ -25,7 +30,7 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBContainerTestBase {
 
   @BeforeAll
   public static void beforeClass() throws SQLException {
-      initializeYBContainer();
+      initializeYBContainer(null, "timestamp_history_retention_interval_sec=240,cdc_intent_retention_ms=240000,cdc_wal_retention_time_secs=240");
       TestHelper.dropAllSchemas();
   }
 
@@ -281,6 +286,57 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBContainerTestBase {
     SourceRecord record2 = records.get(2);
     assertBeforeImage(record2, 1, "updated_first_name", "last_name_d", 12.345);
     assertAfterImage(record2, 1, "updated_first_name_2", "updated_last_name", 98.765);
+  }
+
+  @Test
+  public void reproWithCustomFlags() throws Exception {
+    TestHelper.initDB("yugabyte_create_tables.ddl");
+
+    // Create table to test
+    TestHelper.execute("CREATE TABLE test_repro (id INT PRIMARY KEY, val TEXT DEFAULT 'default', col INT);");
+    String dbStreamId = TestHelper.getNewDbStreamId("yugabyte", "t1",
+                                                    true /* withBeforeImage */);
+    Configuration.Builder configBuilder =
+      TestHelper.getConfigBuilder("public.table_with_defaults", dbStreamId);
+    configBuilder.with(YugabyteDBConnectorConfig.CDC_POLL_INTERVAL_MS, 2 * 60 * 1000);
+    startEngine(configBuilder);
+
+    awaitUntilConnectorIsReady();
+
+    final long iterations = 5000;
+    TestHelper.execute("INSERT INTO test_repro VALUES (1, 'Vaibhav', 1);");
+
+    Connection conn = TestHelper.create().connection();
+    conn.setAutoCommit(true);
+    Statement st = conn.createStatement();
+    for (int i = 0; i < iterations; ++i) {
+      try {
+        st.execute("UPDATE test_repro SET col = col + 1 WHERE id = 1;");
+      } catch (SQLException sqle) {
+        LOGGER.error("Exception while updating row", sqle);
+      }
+    }
+
+    stopConnector();
+
+    for (int i = 0; i < iterations; ++i) {
+      try {
+        st.execute("UPDATE test_repro SET col = col + 1 WHERE id = 1;");
+      } catch (SQLException sqle) {
+        LOGGER.error("Exception while updating row", sqle);
+      }
+    }
+
+    // Wait for 4 minutes for retention time to be expired.
+    TestHelper.waitFor(Duration.ofMinutes(4));
+
+    // Start connector again and consume.
+    startEngine(configBuilder);
+    awaitUntilConnectorIsReady();
+
+    // Consume the records and verify that the records should have the relevant information.
+    List<SourceRecord> records = new ArrayList<>();
+    CompletableFuture.runAsync(() -> getRecords(records, 2 + 10000, 30000)).get();
   }
 
   private void assertBeforeImage(SourceRecord record, Integer id, String firstName, String lastName,
