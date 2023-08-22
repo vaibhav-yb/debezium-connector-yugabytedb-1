@@ -5,6 +5,8 @@ cidrval cidr, dt date, dp double precision, inetval inet, intervalval interval, 
 si smallint, i4r int4range, i8r int8range, nr numrange, tsr tsrange, tstzr tstzrange, dr daterange, txt text, tm time, tmtz timetz, ts timestamp, tstz timestamptz,
 uuidval uuid) WITH (COLOCATION = false);
 
+CREATE TABLE test_with_serial (id INT PRIMARY KEY, name TEXT, serial_no INT);
+
 DROP DATABASE IF EXISTS secondary_database;
 CREATE DATABASE secondary_database;
 

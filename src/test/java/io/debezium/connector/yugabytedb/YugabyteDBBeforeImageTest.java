@@ -3,13 +3,22 @@ package io.debezium.connector.yugabytedb;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
+import io.debezium.connector.yugabytedb.connection.YugabyteDBConnection;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
@@ -19,7 +28,7 @@ import io.debezium.config.Configuration;
 import io.debezium.connector.yugabytedb.common.YugabyteDBContainerTestBase;
 import io.debezium.connector.yugabytedb.common.YugabytedTestBase;
 
-public class YugabyteDBBeforeImageTest extends YugabyteDBContainerTestBase {
+public class YugabyteDBBeforeImageTest extends YugabytedTestBase {
   private final String formatInsertString =
       "INSERT INTO t1 VALUES (%d, 'Vaibhav', 'Kushwaha', 12.345);";
 
@@ -239,6 +248,65 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBContainerTestBase {
     SourceRecord record4 = records.get(4);
     assertValueField(record4, "before", null);
     assertAfterImage(record4, 404, "Vaibhav", "some_last_name", 98.765);
+  }
+
+  @Test
+  public void continuousUpdatesOnSingleKey() throws Exception {
+      TestHelper.initDB("yugabyte_create_tables.ddl");
+
+      String dbStreamId = TestHelper.getNewDbStreamId("yugabyte", "test_serial", true /* withBeforeImage */);
+      Configuration.Builder configBuilder = TestHelper.getConfigBuilder("public.test_serial", dbStreamId);
+      startEngine(configBuilder);
+
+      awaitUntilConnectorIsReady();
+
+      final long iterations = 2_000;
+      final long totalRecordCount = 1 /* insert */ + iterations /* number of updates */;
+
+      // Insert a record and update it.
+      TestHelper.execute("INSERT INTO test_serial VALUES (1, 'random_name', 1);");
+
+      YugabyteDBConnection ybConn = TestHelper.create();
+      Connection conn = ybConn.connection();
+
+      ExecutorService exec = Executors.newFixedThreadPool(1);
+      Future<?> future = exec.submit(() -> {
+          for (long i = 0; i < iterations; ++i) {
+              try (Statement st = conn.createStatement()) {
+                  st.execute("UPDATE test_serial SET serial_no = serial_no + 1 WHERE id = 1;");
+              } catch (Exception e) {
+                  LOGGER.error("Error while updating record in table", e);
+                  throw new RuntimeException(e);
+              }
+          }
+      });
+
+      AtomicLong totalConsumedRecords = new AtomicLong();
+      try {
+          Awaitility.await()
+                  .atMost(Duration.ofSeconds(600))
+                  .until(() -> {
+                      int consumed = consumeAvailableRecords(record -> {
+                          LOGGER.debug("The record being consumed is " + record);
+                          Struct s = (Struct) record.value();
+
+                          if (TestHelper.getOpValue(record).equals("u")) {
+                              int beforeValue = s.getStruct("before").getStruct("serial_no").getInt32("value");
+                              int afterValue = s.getStruct("after").getStruct("serial_no").getInt32("value");
+
+                              assertEquals(beforeValue + 1, afterValue);
+                          }
+                      });
+                      if (consumed > 0) {
+                          totalConsumedRecords.addAndGet(consumed);
+                          LOGGER.info("Consumed " + totalConsumedRecords.get() + " records");
+                      }
+
+                      return (totalConsumedRecords.get() == totalRecordCount) && future.isDone();
+                  });
+      } catch (ConditionTimeoutException exception) {
+          fail("Failed to consume " + totalCount + " records in 600 seconds, consumed " + totalConsumedRecords.get(), exception);
+      }
   }
 
   @Test
