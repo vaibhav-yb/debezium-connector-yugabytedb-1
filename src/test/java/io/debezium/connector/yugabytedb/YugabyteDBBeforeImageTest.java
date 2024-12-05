@@ -601,6 +601,36 @@ public class YugabyteDBBeforeImageTest extends YugabyteDBContainerTestBase {
     assertNull(updateRecordTwoVal.getStruct("before").getStruct("bigint_col"));
   }
 
+  @Test
+  public void shouldWorkAfterAddingMoneyTypeColumn() throws Exception {
+    TestHelper.execute("CREATE TABLE test_table (id INT PRIMARY KEY, v1 INT DEFAULT 123, v2 INT DEFAULT 12);");
+
+    String dbStreamId = TestHelper.getNewDbStreamId("yugabyte", "test_table", true /* withBeforeImage */,
+      true, BeforeImageMode.ALL, true, true);
+    Configuration.Builder configBuilder = TestHelper.getConfigBuilder("public.test_table", dbStreamId);
+    startEngine(configBuilder);
+
+    awaitUntilConnectorIsReady();
+
+    for (int i = 0; i < 8; ++i) {
+      TestHelper.execute(String.format("INSERT INTO test_table VALUES (%d)", i));
+    }
+
+    TestHelper.execute("ALTER TABLE test_table ADD COLUMN v3 int;");
+    TestHelper.execute("UPDATE test_table SET v1 = 3;");
+
+    TestHelper.execute("ALTER TABLE test_table ADD COLUMN v4 MONEY;");
+    TestHelper.execute("INSERT INTO test_table VALUES (9, 3, 0);");
+    TestHelper.execute("UPDATE test_table SET v1 = 4;");
+
+    List<SourceRecord> records = new ArrayList<>();
+    waitAndFailIfCannotConsume(records, 26 /* 8 inserts, 8 updates, 1 insert, 9 updates */);
+
+    for (SourceRecord r : records) {
+      LOGGER.info("VKVK record {}", r);
+    }
+  }
+
   private void assertBeforeImage(SourceRecord record, Integer id, String firstName, String lastName,
                                  Double hours) {
       assertValueField(record, "before/id/value", id);
